@@ -1068,30 +1068,161 @@ function startVolVis(an){
 }
 function stopVolVis(){ cancelAnimationFrame(volAnimFrame);volAnimFrame=null; $volBars.classList.remove('active'); [0,1,2,3].forEach(i=>{const b=document.getElementById('vb'+i);if(b)b.style.height='2px';}); }
 
-async function startMic(){
-  try{
-    if(!micCtx)micCtx=new AudioContext({sampleRate:MIC_RATE});
-    if(micCtx.state==='suspended')await micCtx.resume();
-    micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,sampleRate:MIC_RATE},video:false});
-    const src=micCtx.createMediaStreamSource(micStream);
-    analyserNode=micCtx.createAnalyser(); analyserNode.fftSize=128;
-    src.connect(analyserNode); startVolVis(analyserNode);
-    if(!micWorkletLoaded){
-      const code=`class MC extends AudioWorkletProcessor{process(i){const c=i[0]?.[0];if(c?.length)this.port.postMessage(c.slice());return true;}}registerProcessor('mc',MC);`;
-      await micCtx.audioWorklet.addModule(URL.createObjectURL(new Blob([code],{type:'application/javascript'}))); micWorkletLoaded=true;
-    }
-    micNode=new AudioWorkletNode(micCtx,'mc'); src.connect(micNode);
-    micNode.port.onmessage=({data:f32})=>{
-      if(isMuted||!session||!isConnected)return;
-      try{session.sendRealtimeInput({media:{data:toB64(f32toPCM(f32)),mimeType:'audio/pcm;rate=16000'}});}catch(e){console.warn('[mic]',e);}
-    };
-    setStatus('listening','active');
-  }catch(e){
-    showToast(e.name==='NotAllowedError'?'Microphone permission denied.':'Mic error: '+e.message);
-    setStatus('mic error','error'); throw e;
+/* ════════════════════════════════════════════════════════════
+   MICROPHONE — with full permission handling & recovery
+   ─────────────────────────────────────────────────────────
+   Problems fixed:
+   1. AudioContext created before user gesture → blocked by browsers
+   2. Permission denied shows toast but session keeps running silently
+   3. Permission state not checked before attempting getUserMedia
+   4. No guidance to user on HOW to fix the permission
+   5. Stale AudioContext from previous session causes resume failures
+════════════════════════════════════════════════════════════ */
+
+async function checkMicPermission() {
+  // Check if Permissions API is available (not on all mobile browsers)
+  try {
+    const result = await navigator.permissions.query({ name: 'microphone' });
+    return result.state; // 'granted' | 'denied' | 'prompt'
+  } catch {
+    return 'prompt'; // assume prompt if API unavailable
   }
 }
-function stopMic(){ stopVolVis(); try{micNode?.disconnect();}catch{} try{micStream?.getTracks().forEach(t=>t.stop());}catch{} micNode=null;micStream=null; }
+
+function showMicDeniedHelp() {
+  // Clear, actionable error message with browser-specific guidance
+  const isIOS     = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  const isSafari  = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+  let guide = '';
+  if (isIOS || isSafari) {
+    guide = ' → Settings > Safari > Microphone > Allow';
+  } else if (isAndroid) {
+    guide = ' → tap the 🔒 icon in the address bar > Microphone > Allow';
+  } else {
+    guide = ' → click the 🔒 lock icon in the address bar > Microphone > Allow';
+  }
+
+  setStatus('mic denied', 'error');
+  showToast('Microphone blocked.' + guide, 10000);
+}
+
+async function startMic() {
+  // ── Step 1: Check permission state first ──────────────────
+  const permState = await checkMicPermission();
+  if (permState === 'denied') {
+    showMicDeniedHelp();
+    throw new Error('microphone-denied');
+  }
+
+  try {
+    // ── Step 2: Get media stream BEFORE creating AudioContext ──
+    // Some browsers (especially mobile) require getUserMedia to happen
+    // synchronously in the user gesture callstack. We request it first
+    // so the browser's permission prompt fires at the right time.
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation:   true,
+        noiseSuppression:   true,
+        autoGainControl:    true,
+        channelCount:       1,
+        sampleRate:         MIC_RATE,
+      },
+      video: false,
+    });
+
+    // ── Step 3: Create/resume AudioContext AFTER stream granted ─
+    // AudioContext must be created after a user gesture and after
+    // we know mic is allowed — avoids "autoplay policy" blocks.
+    if (micCtx && micCtx.state === 'closed') {
+      // Previous session left a closed context — must create fresh
+      micCtx = null;
+    }
+    if (!micCtx) {
+      micCtx = new AudioContext({ sampleRate: MIC_RATE });
+    }
+    if (micCtx.state === 'suspended') {
+      await micCtx.resume();
+    }
+
+    // ── Step 4: Build audio graph ──────────────────────────────
+    const src = micCtx.createMediaStreamSource(micStream);
+    analyserNode = micCtx.createAnalyser();
+    analyserNode.fftSize = 128;
+    src.connect(analyserNode);
+    startVolVis(analyserNode);
+
+    // ── Step 5: Load AudioWorklet (once per page load) ─────────
+    if (!micWorkletLoaded) {
+      const code = `class MC extends AudioWorkletProcessor {
+        process(i) { const c=i[0]?.[0]; if(c?.length) this.port.postMessage(c.slice()); return true; }
+      } registerProcessor('mc', MC);`;
+      const blob = new Blob([code], { type: 'application/javascript' });
+      await micCtx.audioWorklet.addModule(URL.createObjectURL(blob));
+      micWorkletLoaded = true;
+    }
+
+    // ── Step 6: Wire worklet → Gemini ──────────────────────────
+    micNode = new AudioWorkletNode(micCtx, 'mc');
+    src.connect(micNode);
+    micNode.port.onmessage = ({ data: f32 }) => {
+      if (isMuted || !session || !isConnected) return;
+      try {
+        session.sendRealtimeInput({
+          media: { data: toB64(f32toPCM(f32)), mimeType: 'audio/pcm;rate=16000' }
+        });
+      } catch (e) { console.warn('[mic send]', e); }
+    };
+
+    setStatus('listening', 'active');
+    console.log('[Mic] started, sampleRate:', micCtx.sampleRate);
+
+  } catch (e) {
+    // Clean up any partial stream
+    try { micStream?.getTracks().forEach(t => t.stop()); } catch {}
+    micStream = null;
+
+    if (e.message === 'microphone-denied') throw e; // already handled above
+
+    if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+      showMicDeniedHelp();
+    } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
+      setStatus('no mic', 'error');
+      showToast('No microphone found. Please connect a microphone and try again.', 8000);
+    } else if (e.name === 'NotReadableError' || e.name === 'TrackStartError') {
+      setStatus('mic busy', 'error');
+      showToast('Microphone is in use by another app. Close other apps and retry.', 8000);
+    } else if (e.name === 'OverconstrainedError') {
+      // Retry without sampleRate constraint — some mobile browsers reject it
+      console.warn('[Mic] OverconstrainedError, retrying without sampleRate constraint');
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        setStatus('listening', 'active');
+        return; // basic fallback succeeded
+      } catch (e2) {
+        setStatus('mic error', 'error');
+        showToast('Microphone error: ' + e2.message, 8000);
+        throw e2;
+      }
+    } else {
+      setStatus('mic error', 'error');
+      showToast('Microphone error: ' + e.message, 8000);
+    }
+    throw e;
+  }
+}
+
+function stopMic() {
+  stopVolVis();
+  try { micNode?.disconnect(); }   catch {}
+  try { micStream?.getTracks().forEach(t => t.stop()); } catch {}
+  // Don't close AudioContext — closing is expensive and causes issues if
+  // the user starts another session. We suspend it instead.
+  try { if (micCtx?.state === 'running') micCtx.suspend(); } catch {}
+  micNode = null;
+  micStream = null;
+}
 
 /* ════════════════════════════════════════════════════════════
    CAMERA — works for both desktop sidebar and mobile sheet
@@ -1140,6 +1271,14 @@ function resetState(){ partialUserText='';partialAIEl=null;pendingText='';audioQ
 
 async function startSession(){
   if(!API_KEY){$gate.classList.remove('gone');return;}
+
+  // Pre-check mic permission before spending time loading avatar/connecting
+  const perm = await checkMicPermission();
+  if (perm === 'denied') {
+    showMicDeniedHelp();
+    return;
+  }
+
   $toast.style.display='none'; $toggle.disabled=true; setStatus('loading…','info');
   try{await initAvatar();}catch(e){showToast('Avatar init failed: '+e.message);$toggle.disabled=false;setStatus('error','error');return;}
   setStatus('connecting…','info');
@@ -1164,7 +1303,16 @@ async function startSession(){
         onopen:async()=>{
           isConnected=true;updateUI(true);setStatus('live','active');
           $capDot.classList.add('on');$logoDot.classList.add('active');$liveBadge.classList.add('show');
-          try{await startMic();}catch{stopSession();}
+          try {
+            await startMic();
+          } catch (e) {
+            // Mic failed — session is open but we can't send audio.
+            // Don't kill the session silently; let the user see the error
+            // and decide to retry (they can end and restart).
+            console.error('[onopen] mic failed:', e.message);
+            // Update toggle so user can end cleanly
+            updateUI(true);
+          }
         },
         onmessage:handleMessage,
         onclose:ev=>{ cleanup();setStatus('ended'); if(ev?.code&&ev.code!==1000)showToast(`Closed (${ev.code}): ${ev.reason||'unknown'}`); },
