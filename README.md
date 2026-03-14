@@ -1,4 +1,5 @@
-# Fulkumari Live 🎙️ **Live Preview [Fulkumari Live]([https://rikeshdahal.github.io/fulkumari-live/])**
+# Fulkumari Live 🎙️ 
+**Live Preview [Fulkumari Live]([https://rikeshdahal.github.io/fulkumari-live/])**
 
 A real-time AI voice + vision companion powered by **Google Gemini Live API** and the **TalkingHead** avatar engine. Talk to an animated 3D avatar that listens, sees (via your camera), and responds — in **English or Nepali**.
 
