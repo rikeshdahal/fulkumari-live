@@ -2,32 +2,21 @@
 <!--
   ╔═══════════════════════════════════════════════════════════╗
   ║           FULKUMARI LIVE — Open Source                   ║
-  ║                                                           ║
   ║  Author  : Rikesh Dahal                                  ║
   ║  License : Attribution Required (see LICENSE)           ║
   ║  GitHub  : https://github.com/rikeshdahal/fulkumari-live ║
-  ║                                                           ║
-  ║  A real-time AI voice + vision companion powered by      ║
-  ║  Google Gemini Live API and TalkingHead avatar engine.   ║
-  ║                                                           ║
-  ║  SETUP:                                                   ║
-  ║  1. Open index.html in a browser (or serve with any      ║
-  ║     static server — no backend needed)                   ║
-  ║  2. Enter your Gemini API key when prompted              ║
-  ║  3. Click "Start Session" and start talking              ║
-  ║                                                           ║
-  ║  API KEY: Get a free key at                              ║
-  ║  https://aistudio.google.com/app/apikey                  ║
-  ║  Your key is NEVER stored — memory only.                 ║
   ╚═══════════════════════════════════════════════════════════╝
 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Fulkumari — Live Call</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <title>Fulkumari Live</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <script type="importmap">
   { "imports": {
@@ -38,167 +27,472 @@
   </script>
 
   <style>
+    /* ══ TOKENS ═══════════════════════════════════════════════ */
     :root {
-      --bg:        #0b0b0f;
-      --surface:   #141418;
-      --surface2:  #1c1c22;
-      --border:    #252530;
-      --border2:   #2e2e3a;
-      --accent:    #e8e8f0;
-      --muted:     #5a5a6e;
-      --dim:       #2e2e3a;
-      --red:       #f87171;
-      --gold:      #D4AF8C;
-      --gold-dim:  rgba(212,175,140,0.12);
-      --blue:      #7dd3fc;
-      --blue-dim:  rgba(125,211,252,0.1);
-      --radius:    10px;
-      --ease:      0.22s cubic-bezier(0.4,0,0.2,1);
+      --bg:       #0b0b0f;
+      --surface:  #141418;
+      --surface2: #1c1c22;
+      --border:   #252530;
+      --border2:  #2e2e3a;
+      --accent:   #e8e8f0;
+      --muted:    #5a5a6e;
+      --dim:      #2e2e3a;
+      --red:      #f87171;
+      --gold:     #D4AF8C;
+      --gold-dim: rgba(212,175,140,0.12);
+      --blue:     #7dd3fc;
+      --blue-dim: rgba(125,211,252,0.1);
+      --ease:     0.22s cubic-bezier(0.4,0,0.2,1);
+      --r:        10px;
+      /* safe area insets for notch/home-bar phones */
+      --sat: env(safe-area-inset-top,0px);
+      --sar: env(safe-area-inset-right,0px);
+      --sab: env(safe-area-inset-bottom,0px);
+      --sal: env(safe-area-inset-left,0px);
     }
-    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-    html,body{height:100%;overflow:hidden}
-    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--accent);display:flex;flex-direction:column;height:100vh}
 
-    /* ══ API KEY GATE ══ */
-    #api-gate{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center}
-    #api-gate.gone{display:none}
-    .gate-card{width:390px;border:1px solid var(--border2);border-radius:16px;background:var(--surface);padding:36px 32px 28px;display:flex;flex-direction:column;gap:22px}
-    .gate-logo{display:flex;align-items:center;gap:10px}
-    .gate-dot{width:10px;height:10px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold)}
-    .gate-title{font-family:'DM Mono',monospace;font-size:14px;font-weight:500;letter-spacing:.22em;text-transform:uppercase}
-    .gate-title span{color:var(--gold)}
-    .gate-desc{font-size:12px;line-height:1.7;color:var(--muted)}
-    .gate-desc a{color:var(--gold);text-decoration:none}
-    .gate-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;display:block}
-    .gate-iw{position:relative}
-    .gate-input{width:100%;padding:11px 44px 11px 14px;font-family:'DM Mono',monospace;font-size:12px;background:var(--surface2);color:var(--accent);border:1px solid var(--border2);border-radius:8px;outline:none;transition:border-color var(--ease);letter-spacing:.04em}
-    .gate-input:focus{border-color:rgba(212,175,140,0.5)}
-    .gate-eye{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;transition:color var(--ease)}
-    .gate-eye:hover{color:var(--gold)}
-    .gate-err{font-family:'DM Mono',monospace;font-size:10px;color:var(--red);display:none;margin-top:-10px}
-    .gate-btn{padding:12px;width:100%;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;background:var(--gold);color:#0b0b0f;border:none;border-radius:8px;cursor:pointer;font-weight:500;transition:opacity var(--ease),transform var(--ease)}
-    .gate-btn:hover{opacity:.85;transform:translateY(-1px)}
-    .gate-btn:active{transform:scale(.98)}
-    .gate-note{font-size:10px;color:var(--muted);text-align:center;line-height:1.6}
-    .gate-note strong{color:var(--accent)}
-    .gate-note a{color:var(--gold);text-decoration:none}
+    /* ══ RESET ════════════════════════════════════════════════ */
+    *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html { height:100%; }
+    body {
+      font-family:'DM Sans',sans-serif;
+      background:var(--bg); color:var(--accent);
+      display:flex; flex-direction:column;
+      height:100%; height:100dvh;          /* dynamic viewport height */
+      overflow:hidden;
+      -webkit-font-smoothing:antialiased;
+    }
 
-    /* ══ HEADER ══ */
-    header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(11,11,15,0.95);backdrop-filter:blur(10px);z-index:100}
-    .logo{display:flex;align-items:center;gap:10px}
-    .logo-mark{width:28px;height:28px;border:1.5px solid var(--border2);border-radius:7px;display:flex;align-items:center;justify-content:center;background:var(--surface);position:relative;overflow:hidden;transition:border-color var(--ease)}
-    .logo-mark.active{border-color:rgba(212,175,140,0.5)}
-    .logo-mark::after{content:'';position:absolute;width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background var(--ease),box-shadow var(--ease)}
-    .logo-mark.active::after{background:var(--gold);box-shadow:0 0 10px var(--gold);animation:pulse 2s ease-in-out infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
-    .logo h1{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:.22em;text-transform:uppercase}
-    .logo h1 span{color:var(--gold)}
-    .header-right{display:flex;align-items:center;gap:10px}
-    .status-pill{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--muted);padding:4px 12px;border:1px solid var(--border);border-radius:20px;transition:all var(--ease);text-transform:uppercase}
-    .status-pill.active{color:var(--gold);border-color:rgba(212,175,140,0.4);background:var(--gold-dim)}
-    .status-pill.error{color:var(--red);border-color:rgba(248,113,113,0.4);background:rgba(248,113,113,0.06)}
-    .status-pill.info{color:var(--blue);border-color:rgba(125,211,252,0.4);background:var(--blue-dim)}
+    /* ══ ANIMATIONS ═══════════════════════════════════════════ */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+    @keyframes spin   { to{transform:rotate(360deg)} }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes slideUp{ from{transform:translateY(100%)} to{transform:translateY(0)} }
+    @keyframes toastIn{ from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
 
-    /* ══ LAYOUT ══ */
-    .body{display:flex;flex:1;overflow:hidden;min-height:0}
-    main{flex:1;display:flex;flex-direction:column;padding:14px 16px 14px 20px;gap:12px;overflow:hidden;min-width:0}
+    /* ══ API KEY GATE ═════════════════════════════════════════ */
+    #api-gate {
+      position:fixed; inset:0; z-index:999;
+      background:var(--bg);
+      display:flex; align-items:center; justify-content:center;
+      padding:16px;
+    }
+    #api-gate.gone { display:none; }
+    .gate-card {
+      width:100%; max-width:420px;
+      border:1px solid var(--border2); border-radius:16px;
+      background:var(--surface);
+      padding:28px 24px 22px;
+      display:flex; flex-direction:column; gap:18px;
+      max-height:calc(100dvh - 32px); overflow-y:auto;
+    }
+    .gate-logo { display:flex; align-items:center; gap:10px; }
+    .gate-dot  { width:10px; height:10px; border-radius:50%; background:var(--gold); box-shadow:0 0 12px var(--gold); flex-shrink:0; }
+    .gate-title{ font-family:'DM Mono',monospace; font-size:13px; font-weight:500; letter-spacing:.22em; text-transform:uppercase; }
+    .gate-title span { color:var(--gold); }
+    .gate-desc { font-size:12px; line-height:1.7; color:var(--muted); }
+    .gate-desc a { color:var(--gold); text-decoration:none; }
+    .gate-label{ font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; display:block; }
+    .gate-iw   { position:relative; }
+    .gate-input{
+      width:100%; padding:12px 44px 12px 14px;
+      font-family:'DM Mono',monospace; font-size:14px; /* larger for mobile */
+      background:var(--surface2); color:var(--accent);
+      border:1px solid var(--border2); border-radius:8px;
+      outline:none; transition:border-color var(--ease);
+    }
+    .gate-input:focus { border-color:rgba(212,175,140,0.5); }
+    .gate-eye {
+      position:absolute; right:11px; top:50%; transform:translateY(-50%);
+      background:none; border:none; cursor:pointer;
+      color:var(--muted); padding:6px; /* bigger touch target */
+    }
+    .gate-eye:hover { color:var(--gold); }
+    .gate-err  { font-family:'DM Mono',monospace; font-size:10px; color:var(--red); display:none; margin-top:-8px; }
+    .gate-btn  {
+      padding:14px; width:100%;
+      font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+      background:var(--gold); color:#0b0b0f; border:none; border-radius:8px;
+      cursor:pointer; font-weight:500; transition:opacity var(--ease),transform var(--ease);
+      min-height:48px; /* touch-friendly */
+    }
+    .gate-btn:hover  { opacity:.85; }
+    .gate-btn:active { transform:scale(.97); }
+    .gate-note { font-size:10px; color:var(--muted); text-align:center; line-height:1.6; }
+    .gate-note strong { color:var(--accent); }
+    .gate-note a { color:var(--gold); text-decoration:none; }
+    .gate-credits {
+      border-top:1px solid var(--border);
+      padding-top:14px; display:flex; flex-direction:column; gap:8px;
+    }
+    .gate-cr-label { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); }
+    .gate-cr-row   { display:flex; gap:6px; flex-wrap:wrap; }
+    .gate-cr-badge {
+      flex:1; min-width:80px;
+      display:flex; align-items:center; justify-content:center; gap:5px;
+      padding:7px 6px; border:1px solid var(--border); border-radius:6px;
+      text-decoration:none; color:var(--muted);
+      font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.06em;
+      background:var(--surface2); transition:all var(--ease);
+    }
+    .gate-cr-badge:hover  { border-color:var(--gold); color:var(--gold); }
+    .gate-cr-footer { font-family:'DM Mono',monospace; font-size:9px; color:var(--muted); text-align:center; }
+    .gate-cr-footer a { color:var(--gold); text-decoration:none; }
 
-    /* ══ AVATAR ══ */
-    .avatar-wrap{position:relative;flex:1;min-height:0;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#070709}
-    .avatar-wrap::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:4;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px)}
-    #avatar-el{display:block;width:100%;height:100%}
-    #avatar-overlay{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#070709;border-radius:14px;transition:opacity .4s}
-    #avatar-overlay.hidden{opacity:0;pointer-events:none}
-    .pre-icon{width:56px;height:56px;border:1.5px solid var(--border2);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted)}
-    .pre-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
-    .loader-ring{width:36px;height:36px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .9s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .lbt{width:140px;height:2px;background:var(--border2);border-radius:2px;overflow:hidden}
-    .lbb{height:100%;width:0%;background:var(--gold);border-radius:2px;transition:width .25s ease}
-    .lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;color:var(--muted)}
-    .speak-ring{position:absolute;inset:-1px;z-index:3;border-radius:14px;border:2px solid transparent;pointer-events:none;transition:border-color .3s,box-shadow .3s}
-    .speak-ring.active{border-color:rgba(212,175,140,.45);box-shadow:0 0 28px rgba(212,175,140,.18),inset 0 0 28px rgba(212,175,140,.04)}
-    .live-badge{position:absolute;top:12px;left:14px;z-index:10;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:6px;opacity:0;transition:opacity .3s}
-    .live-badge.show{opacity:1}
-    .live-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--gold);animation:pulse 2s ease-in-out infinite}
-    #stream-badge{position:absolute;top:12px;right:14px;z-index:10;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:3px 9px;border:1px solid var(--border);border-radius:4px;background:rgba(7,7,9,.75);transition:all .3s}
-    #stream-badge.ready{color:var(--gold);border-color:rgba(212,175,140,.3)}
-    #stream-badge.speaking{color:var(--blue);border-color:rgba(125,211,252,.3);animation:pulse .8s infinite}
-    #subtitles{position:absolute;bottom:6%;left:50%;transform:translateX(-50%);width:82%;text-align:center;z-index:30;font-family:'DM Mono',monospace;font-size:clamp(10px,1.6vw,14px);font-weight:500;line-height:1.55;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.95),0 0 30px rgba(0,0,0,.7);pointer-events:none;min-height:2.2em}
+    /* ══ HEADER ═══════════════════════════════════════════════ */
+    header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 16px;
+      padding-top:calc(10px + var(--sat));
+      border-bottom:1px solid var(--border);
+      flex-shrink:0;
+      background:rgba(11,11,15,0.97);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      z-index:100;
+    }
+    .logo { display:flex; align-items:center; gap:8px; }
+    .logo-mark {
+      width:26px; height:26px; border:1.5px solid var(--border2); border-radius:7px;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--surface); position:relative; overflow:hidden;
+      transition:border-color var(--ease); flex-shrink:0;
+    }
+    .logo-mark.active { border-color:rgba(212,175,140,0.5); }
+    .logo-mark::after {
+      content:''; position:absolute; width:8px; height:8px;
+      border-radius:50%; background:var(--muted);
+      transition:background var(--ease),box-shadow var(--ease);
+    }
+    .logo-mark.active::after { background:var(--gold); box-shadow:0 0 10px var(--gold); animation:pulse 2s ease-in-out infinite; }
+    .logo h1 { font-family:'DM Mono',monospace; font-size:12px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; }
+    .logo h1 span { color:var(--gold); }
+    .gh-link {
+      font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.1em;
+      color:var(--muted); text-decoration:none;
+      display:flex; align-items:center; gap:5px;
+      transition:color var(--ease);
+    }
+    .gh-link:hover { color:var(--gold); }
+    .gh-link-text { display:none; } /* hidden on mobile */
+    .header-right { display:flex; align-items:center; gap:8px; }
+    .vol-bars { display:flex; align-items:flex-end; gap:2px; height:14px; opacity:0; transition:opacity .3s; }
+    .vol-bars.active { opacity:1; }
+    .vol-bar  { width:2px; border-radius:1px; background:var(--gold); min-height:2px; transition:height .05s; }
+    .status-pill {
+      font-family:'DM Mono',monospace; font-size:8px; letter-spacing:.12em;
+      color:var(--muted); padding:3px 9px;
+      border:1px solid var(--border); border-radius:20px;
+      transition:all var(--ease); text-transform:uppercase; white-space:nowrap;
+    }
+    .status-pill.active { color:var(--gold); border-color:rgba(212,175,140,0.4); background:var(--gold-dim); }
+    .status-pill.error  { color:var(--red);  border-color:rgba(248,113,113,0.4); background:rgba(248,113,113,0.06); }
+    .status-pill.info   { color:var(--blue); border-color:rgba(125,211,252,0.4); background:var(--blue-dim); }
 
-    /* ══ CAPTIONS ══ */
-    .captions-wrap{flex-shrink:0}
-    .cap-header{display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
-    .cap-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);opacity:0;transition:opacity .3s}
-    .cap-dot.on{opacity:1;animation:pulse 1.2s infinite}
-    .captions-box{height:100px;border:1px solid var(--border);background:var(--surface);border-radius:var(--radius);padding:10px 13px;overflow-y:auto}
-    .captions-box::-webkit-scrollbar{width:3px}
-    .captions-box::-webkit-scrollbar-thumb{background:var(--dim);border-radius:2px}
+    /* ══ MAIN LAYOUT ══════════════════════════════════════════ */
+    /* Mobile: single column stack */
+    .body { display:flex; flex:1; overflow:hidden; min-height:0; }
+    main  {
+      flex:1; display:flex; flex-direction:column;
+      padding:10px 10px 8px;
+      gap:8px; overflow:hidden; min-width:0;
+    }
 
-    /* Caption rows — speaker label left, text right */
-    .cap-row{display:flex;gap:10px;align-items:baseline;padding:3px 0;animation:fadeUp .2s ease forwards;border-bottom:1px solid rgba(37,37,48,0.45)}
-    .cap-row:last-child{border-bottom:none}
-    .cap-who{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;flex-shrink:0;width:72px;text-align:right;padding-top:1px}
-    .cap-row.user .cap-who{color:var(--muted)}
-    .cap-row.ai   .cap-who{color:var(--gold)}
-    .cap-text{font-family:'DM Mono',monospace;font-size:11px;line-height:1.7;flex:1}
-    .cap-row.user .cap-text{color:#9090a8}
-    .cap-row.ai   .cap-text{color:var(--accent)}
-    .cap-ph{font-family:'DM Mono',monospace;font-size:11px;color:var(--dim);font-style:italic}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+    /* ══ AVATAR ═══════════════════════════════════════════════ */
+    .avatar-wrap {
+      position:relative; flex:1; min-height:0;
+      border:1px solid var(--border); border-radius:12px;
+      overflow:hidden; background:#070709;
+    }
+    .avatar-wrap::after {
+      content:''; position:absolute; inset:0; pointer-events:none; z-index:4;
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);
+    }
+    #avatar-el { display:block; width:100%; height:100%; }
 
-    /* ══ SIDEBAR ══ */
-    .sidebar{width:232px;flex-shrink:0;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:16px;padding:16px;overflow-y:auto;background:var(--surface)}
-    .sidebar::-webkit-scrollbar{width:3px}
-    .sidebar::-webkit-scrollbar-thumb{background:var(--dim);border-radius:2px}
-    .sec-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
-    .av-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-    .av-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 7px;cursor:pointer;text-align:center;transition:border-color var(--ease),background var(--ease);user-select:none}
-    .av-card:hover{border-color:var(--muted)}
-    .av-card.active{border-color:var(--gold);background:var(--gold-dim)}
-    .av-name{font-family:'DM Mono',monospace;font-size:11px;font-weight:500}
-    .av-sub{font-size:9px;color:var(--muted);margin-top:2px}
-    .av-card.active .av-sub{color:var(--gold);opacity:.8}
-    .cam-frame{position:relative;width:100%;aspect-ratio:16/9;background:#0d0d10;border:1px solid var(--border);border-radius:8px;overflow:hidden}
-    #cam-video{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .4s}
-    #cam-video.active{opacity:1}
-    .cam-off{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--dim);transition:opacity .3s}
-    .cam-off.hidden{opacity:0;pointer-events:none}
-    .cam-rec{position:absolute;top:7px;right:8px;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;color:var(--red);display:none;align-items:center;gap:4px}
-    .cam-rec.show{display:flex}
-    .cam-rec::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--red);animation:pulse 1s infinite}
-    .row{display:flex;gap:7px}
-    .btn-sm{flex:1;padding:8px 6px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;cursor:pointer;transition:all var(--ease)}
-    .btn-sm:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
-    .btn-sm:disabled{opacity:.22;cursor:not-allowed}
-    .btn-sm.cam-on{color:var(--red);border-color:var(--red)}
-    .vision-log{border:1px solid var(--border);background:var(--surface2);border-radius:8px;padding:10px 12px;max-height:130px;overflow-y:auto}
-    .vision-log::-webkit-scrollbar{width:3px}
-    .vision-log::-webkit-scrollbar-thumb{background:var(--dim);border-radius:2px}
-    .vision-entry{font-family:'DM Mono',monospace;font-size:9.5px;line-height:1.65;color:#7a7a8e;margin-bottom:7px;border-bottom:1px solid var(--border);padding-bottom:7px;animation:fadeUp .3s ease}
-    .vision-entry:last-child{border-bottom:none;margin-bottom:0}
-    .vision-entry .ts{color:var(--muted);font-size:8px}
-    .vision-ph{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--dim);font-style:italic}
+    /* overlay */
+    #avatar-overlay {
+      position:absolute; inset:0; z-index:20;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+      background:#070709; border-radius:12px; transition:opacity .4s;
+    }
+    #avatar-overlay.hidden { opacity:0; pointer-events:none; }
+    .pre-icon  { width:52px; height:52px; border:1.5px solid var(--border2); border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--muted); }
+    .pre-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); }
+    .loader-ring { width:34px; height:34px; border:2px solid var(--border2); border-top-color:var(--gold); border-radius:50%; animation:spin .9s linear infinite; }
+    .lbt { width:130px; height:2px; background:var(--border2); border-radius:2px; overflow:hidden; }
+    .lbb { height:100%; width:0%; background:var(--gold); border-radius:2px; transition:width .25s ease; }
+    .lbl { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.12em; color:var(--muted); }
 
-    /* ══ FOOTER ══ */
-    footer{padding:11px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0;background:rgba(11,11,15,0.95)}
-    .btn-main{padding:11px 30px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;background:var(--gold);color:#0b0b0f;border:none;border-radius:7px;cursor:pointer;transition:all var(--ease);font-weight:500}
-    .btn-main:hover:not(:disabled){opacity:.85;transform:translateY(-1px)}
-    .btn-main:active:not(:disabled){transform:scale(.98)}
-    .btn-main:disabled{opacity:.35;cursor:not-allowed}
-    .btn-main.end{background:transparent;color:var(--red);border:1px solid rgba(248,113,113,.5)}
-    .btn-main.end:hover{background:rgba(248,113,113,.08)}
-    .btn-icon{width:40px;height:40px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:all var(--ease)}
-    .btn-icon:not(:disabled):hover{border-color:var(--gold);color:var(--gold)}
-    .btn-icon:disabled{opacity:.22;cursor:not-allowed}
-    .btn-icon.muted{color:var(--red);border-color:rgba(248,113,113,.5)}
-    .vol-bars{display:flex;align-items:flex-end;gap:2px;height:14px;opacity:0;transition:opacity .3s}
-    .vol-bars.active{opacity:1}
-    .vol-bar{width:2px;border-radius:1px;background:var(--gold);min-height:2px;transition:height .05s}
+    /* speaking ring */
+    .speak-ring {
+      position:absolute; inset:-1px; z-index:3; border-radius:12px;
+      border:2px solid transparent; pointer-events:none;
+      transition:border-color .3s,box-shadow .3s;
+    }
+    .speak-ring.active {
+      border-color:rgba(212,175,140,.45);
+      box-shadow:0 0 24px rgba(212,175,140,.18),inset 0 0 24px rgba(212,175,140,.04);
+    }
 
-    /* ══ TOAST ══ */
-    #error-toast{font-family:'DM Mono',monospace;font-size:10px;color:var(--red);background:rgba(11,11,15,.97);border:1px solid rgba(248,113,113,.3);border-radius:8px;padding:9px 18px;display:none;position:fixed;bottom:76px;left:50%;transform:translateX(-50%);white-space:nowrap;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:toastIn .2s ease}
-    @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(6px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+    /* badges inside avatar */
+    .live-badge {
+      position:absolute; top:10px; left:12px; z-index:10;
+      font-family:'DM Mono',monospace; font-size:8px; letter-spacing:.18em;
+      text-transform:uppercase; color:var(--gold);
+      display:flex; align-items:center; gap:5px;
+      opacity:0; transition:opacity .3s;
+    }
+    .live-badge.show { opacity:1; }
+    .live-badge::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--gold); animation:pulse 2s ease-in-out infinite; }
+
+    #stream-badge {
+      position:absolute; top:10px; right:12px; z-index:10;
+      font-family:'DM Mono',monospace; font-size:7px; letter-spacing:.1em;
+      text-transform:uppercase; color:var(--muted);
+      padding:3px 8px; border:1px solid var(--border); border-radius:4px;
+      background:rgba(7,7,9,.8); transition:all .3s;
+    }
+    #stream-badge.ready   { color:var(--gold); border-color:rgba(212,175,140,.3); }
+    #stream-badge.speaking{ color:var(--blue); border-color:rgba(125,211,252,.3); animation:pulse .8s infinite; }
+
+    /* subtitles */
+    #subtitles {
+      position:absolute; bottom:5%; left:50%; transform:translateX(-50%);
+      width:88%; text-align:center; z-index:30;
+      font-family:'DM Mono',monospace;
+      font-size:clamp(11px,3.5vw,15px);
+      font-weight:500; line-height:1.5; color:#fff;
+      text-shadow:0 2px 12px rgba(0,0,0,.95),0 0 30px rgba(0,0,0,.7);
+      pointer-events:none; min-height:2em;
+    }
+
+    /* ══ CAPTIONS ═════════════════════════════════════════════ */
+    .captions-wrap { flex-shrink:0; }
+    .cap-header {
+      display:flex; align-items:center; gap:6px;
+      font-family:'DM Mono',monospace; font-size:8px; letter-spacing:.16em;
+      color:var(--muted); text-transform:uppercase; margin-bottom:5px;
+    }
+    .cap-dot { width:5px; height:5px; border-radius:50%; background:var(--gold); opacity:0; transition:opacity .3s; }
+    .cap-dot.on { opacity:1; animation:pulse 1.2s infinite; }
+    .captions-box {
+      height:72px; border:1px solid var(--border);
+      background:var(--surface); border-radius:var(--r);
+      padding:8px 12px; overflow-y:auto;
+    }
+    .captions-box::-webkit-scrollbar { width:2px; }
+    .captions-box::-webkit-scrollbar-thumb { background:var(--dim); border-radius:2px; }
+    .cap-row { display:flex; gap:8px; align-items:baseline; padding:2px 0; animation:fadeUp .2s ease forwards; border-bottom:1px solid rgba(37,37,48,0.4); }
+    .cap-row:last-child { border-bottom:none; }
+    .cap-who { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:.1em; text-transform:uppercase; flex-shrink:0; width:64px; text-align:right; padding-top:1px; }
+    .cap-row.user .cap-who { color:var(--muted); }
+    .cap-row.ai   .cap-who { color:var(--gold); }
+    .cap-text { font-family:'DM Mono',monospace; font-size:10px; line-height:1.7; flex:1; }
+    .cap-row.user .cap-text { color:#9090a8; }
+    .cap-row.ai   .cap-text { color:var(--accent); }
+    .cap-ph { font-family:'DM Mono',monospace; font-size:10px; color:var(--dim); font-style:italic; }
+
+    /* ══ SIDEBAR (desktop) / BOTTOM SHEET (mobile) ════════════ */
+    .sidebar {
+      width:220px; flex-shrink:0;
+      border-left:1px solid var(--border);
+      display:flex; flex-direction:column;
+      gap:14px; padding:14px 12px;
+      overflow-y:auto;
+      background:var(--surface);
+    }
+    .sidebar::-webkit-scrollbar { width:3px; }
+    .sidebar::-webkit-scrollbar-thumb { background:var(--dim); border-radius:2px; }
+
+    .sec-label { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:.16em; color:var(--muted); text-transform:uppercase; margin-bottom:5px; }
+    .av-grid   { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .av-card   {
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:8px; padding:9px 7px;
+      cursor:pointer; text-align:center;
+      transition:border-color var(--ease),background var(--ease);
+      user-select:none; -webkit-user-select:none;
+      min-height:44px; /* touch target */
+    }
+    .av-card:hover  { border-color:var(--muted); }
+    .av-card.active { border-color:var(--gold); background:var(--gold-dim); }
+    .av-name { font-family:'DM Mono',monospace; font-size:11px; font-weight:500; }
+    .av-sub  { font-size:9px; color:var(--muted); margin-top:2px; }
+    .av-card.active .av-sub { color:var(--gold); opacity:.8; }
+
+    .cam-frame { position:relative; width:100%; aspect-ratio:16/9; background:#0d0d10; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    #cam-video { width:100%; height:100%; object-fit:cover; display:block; opacity:0; transition:opacity .4s; }
+    #cam-video.active { opacity:1; }
+    .cam-off   { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.1em; color:var(--dim); transition:opacity .3s; }
+    .cam-off.hidden { opacity:0; pointer-events:none; }
+    .cam-rec   { position:absolute; top:6px; right:8px; font-family:'DM Mono',monospace; font-size:8px; letter-spacing:.1em; color:var(--red); display:none; align-items:center; gap:4px; }
+    .cam-rec.show { display:flex; }
+    .cam-rec::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--red); animation:pulse 1s infinite; }
+
+    .row     { display:flex; gap:6px; }
+    .btn-sm  {
+      flex:1; padding:9px 6px; min-height:40px;
+      font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase;
+      background:transparent; border:1px solid var(--border);
+      color:var(--muted); border-radius:6px; cursor:pointer;
+      transition:all var(--ease);
+    }
+    .btn-sm:hover:not(:disabled) { border-color:var(--gold); color:var(--gold); }
+    .btn-sm:disabled { opacity:.22; cursor:not-allowed; }
+    .btn-sm.cam-on { color:var(--red); border-color:var(--red); }
+
+    .vision-log { border:1px solid var(--border); background:var(--surface2); border-radius:8px; padding:9px 11px; max-height:110px; overflow-y:auto; }
+    .vision-log::-webkit-scrollbar { width:2px; }
+    .vision-log::-webkit-scrollbar-thumb { background:var(--dim); border-radius:2px; }
+    .vision-entry { font-family:'DM Mono',monospace; font-size:9px; line-height:1.65; color:#7a7a8e; margin-bottom:6px; border-bottom:1px solid var(--border); padding-bottom:6px; animation:fadeUp .3s ease; }
+    .vision-entry:last-child { border-bottom:none; margin-bottom:0; }
+    .vision-entry .ts { color:var(--muted); font-size:7px; }
+    .vision-ph { font-family:'DM Mono',monospace; font-size:9px; color:var(--dim); font-style:italic; }
+
+    /* ══ FOOTER ═══════════════════════════════════════════════ */
+    footer {
+      padding:10px 16px;
+      padding-bottom:calc(10px + var(--sab));
+      border-top:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      flex-shrink:0;
+      background:rgba(11,11,15,0.97);
+    }
+    .btn-main {
+      padding:12px 24px; min-height:44px;
+      font-family:'DM Mono',monospace; font-size:10px; letter-spacing:.18em; text-transform:uppercase;
+      background:var(--gold); color:#0b0b0f;
+      border:none; border-radius:8px; cursor:pointer;
+      transition:all var(--ease); font-weight:500;
+    }
+    .btn-main:hover:not(:disabled)  { opacity:.85; transform:translateY(-1px); }
+    .btn-main:active:not(:disabled) { transform:scale(.97); }
+    .btn-main:disabled { opacity:.35; cursor:not-allowed; }
+    .btn-main.end { background:transparent; color:var(--red); border:1px solid rgba(248,113,113,.5); }
+    .btn-main.end:hover { background:rgba(248,113,113,.08); }
+    .btn-icon {
+      width:44px; height:44px; flex-shrink:0;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:8px; display:flex; align-items:center; justify-content:center;
+      cursor:pointer; color:var(--muted); transition:all var(--ease);
+    }
+    .btn-icon:not(:disabled):hover { border-color:var(--gold); color:var(--gold); }
+    .btn-icon:disabled { opacity:.22; cursor:not-allowed; }
+    .btn-icon.muted { color:var(--red); border-color:rgba(248,113,113,.5); }
+
+    /* sidebar toggle button (mobile only) */
+    #sidebar-toggle {
+      display:none; /* shown on mobile via media query */
+      width:44px; height:44px; flex-shrink:0;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:8px; align-items:center; justify-content:center;
+      cursor:pointer; color:var(--muted); transition:all var(--ease);
+    }
+    #sidebar-toggle:hover { border-color:var(--gold); color:var(--gold); }
+    #sidebar-toggle.active { border-color:var(--gold); color:var(--gold); background:var(--gold-dim); }
+
+    /* ══ BOTTOM SHEET (mobile sidebar) ═══════════════════════ */
+    .sheet-backdrop {
+      display:none;
+      position:fixed; inset:0; z-index:200;
+      background:rgba(0,0,0,.6);
+      backdrop-filter:blur(2px);
+      -webkit-backdrop-filter:blur(2px);
+    }
+    .sheet-backdrop.show { display:block; }
+
+    .bottom-sheet {
+      position:fixed; left:0; right:0; bottom:0; z-index:201;
+      background:var(--surface);
+      border-radius:18px 18px 0 0;
+      border-top:1px solid var(--border2);
+      padding:0 16px calc(16px + var(--sab));
+      transform:translateY(100%);
+      transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);
+      max-height:85dvh; overflow-y:auto;
+    }
+    .bottom-sheet.open { transform:translateY(0); }
+    .sheet-handle-wrap {
+      position:sticky; top:0; background:var(--surface);
+      padding:12px 0 8px; display:flex; justify-content:center;
+      border-bottom:1px solid var(--border); margin-bottom:16px;
+      z-index:1;
+    }
+    .sheet-handle {
+      width:36px; height:4px; border-radius:2px;
+      background:var(--border2); cursor:grab;
+    }
+    .sheet-content {
+      display:flex; flex-direction:column; gap:16px;
+      padding-bottom:8px;
+    }
+    /* sheet sections are same as sidebar but styled for sheet */
+    .sheet-row { display:flex; gap:8px; }
+
+    /* ══ TOAST ════════════════════════════════════════════════ */
+    #error-toast {
+      font-family:'DM Mono',monospace; font-size:10px; color:var(--red);
+      background:rgba(11,11,15,.97); border:1px solid rgba(248,113,113,.3);
+      border-radius:8px; padding:9px 16px;
+      display:none; position:fixed;
+      bottom:calc(76px + var(--sab)); left:50%; transform:translateX(-50%);
+      z-index:500; box-shadow:0 8px 32px rgba(0,0,0,.5);
+      animation:toastIn .2s ease;
+      max-width:calc(100vw - 32px);
+      word-break:break-word; white-space:normal;
+      text-align:center;
+    }
+
+    /* ══ RESPONSIVE — TABLET (≥ 640px) ═══════════════════════ */
+    @media (min-width:640px) {
+      header   { padding:12px 20px; padding-top:calc(12px + var(--sat)); }
+      main     { padding:12px 14px 10px; gap:10px; }
+      .gh-link-text { display:inline; }
+      .captions-box { height:82px; }
+      .cap-text { font-size:11px; }
+      .cap-who  { font-size:9px; width:68px; }
+      #subtitles { font-size:clamp(11px,2.5vw,14px); }
+    }
+
+    /* ══ RESPONSIVE — DESKTOP (≥ 900px) ══════════════════════ */
+    @media (min-width:900px) {
+      /* restore side-by-side layout */
+      .body { flex-direction:row; }
+      main  { padding:14px 16px 14px 20px; gap:12px; }
+
+      /* sidebar visible again, bottom sheet hidden */
+      .sidebar         { display:flex; }
+      #sidebar-toggle  { display:none !important; }
+      .sheet-backdrop, .bottom-sheet { display:none !important; }
+
+      .captions-box { height:100px; }
+      .logo h1      { font-size:13px; letter-spacing:.22em; }
+      .status-pill  { font-size:9px; padding:4px 12px; }
+      .btn-main     { padding:11px 30px; }
+      .btn-icon     { width:40px; height:40px; }
+      #sidebar-toggle { display:none; }
+    }
+
+    /* ══ MOBILE-ONLY (< 900px) sidebar hidden, sheet used ════ */
+    @media (max-width:899px) {
+      .sidebar        { display:none; }
+      #sidebar-toggle { display:flex; }
+      footer          { gap:8px; }
+    }
+
+    /* ══ SMALL PHONE TWEAKS (< 380px) ════════════════════════ */
+    @media (max-width:379px) {
+      .logo h1 { font-size:10px; letter-spacing:.14em; }
+      .btn-main{ padding:11px 18px; font-size:9px; letter-spacing:.14em; }
+      .status-pill { font-size:7px; padding:3px 8px; }
+    }
+
+    /* ══ LANDSCAPE MOBILE ═════════════════════════════════════ */
+    @media (max-width:899px) and (orientation:landscape) {
+      .captions-wrap { display:none; } /* hide captions in landscape — more avatar space */
+      main { padding:8px 10px 6px; gap:6px; }
+    }
   </style>
 </head>
 <body>
@@ -212,15 +506,16 @@
     </div>
     <div class="gate-desc">
       Enter your <a href="https://aistudio.google.com/app/apikey" target="_blank">Google Gemini API key</a>
-      to start a live voice + vision session. Your key stays only in browser memory — never saved to disk or sent anywhere except Google's API.
+      to start a live voice + vision session. Your key stays only in browser memory — never saved to disk.
     </div>
     <div>
       <span class="gate-label">Gemini API Key</span>
       <div class="gate-iw">
         <input id="gate-key" class="gate-input" type="password"
-               placeholder="AIzaSy…" autocomplete="off" spellcheck="false"/>
+               placeholder="AIzaSy…" autocomplete="off" spellcheck="false"
+               inputmode="text"/>
         <button class="gate-eye" id="gate-eye" title="Show / hide">
-          <svg id="eye-svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+          <svg id="eye-svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
             <circle cx="12" cy="12" r="3"/>
@@ -234,41 +529,25 @@
       Key saved in <strong>session only</strong> — closing the tab clears it.<br>
       Get a free key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>
     </div>
-
-    <div style="border-top:1px solid var(--border);padding-top:16px;display:flex;flex-direction:column;gap:6px">
-      <div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:2px">Built with</div>
-      <div style="display:flex;gap:8px">
-        <a href="https://github.com/met4citizen/TalkingHead" target="_blank"
-           style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;text-decoration:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;transition:all .2s;background:var(--surface2)"
-           onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'"
-           onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
-          </svg>
+    <div class="gate-credits">
+      <div class="gate-cr-label">Built with</div>
+      <div class="gate-cr-row">
+        <a href="https://github.com/met4citizen/TalkingHead" target="_blank" class="gate-cr-badge">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
           TalkingHead
         </a>
-        <a href="https://threejs.org" target="_blank"
-           style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;text-decoration:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;transition:all .2s;background:var(--surface2)"
-           onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'"
-           onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
-          <svg width="12" height="12" viewBox="0 0 128 128" fill="currentColor">
-            <path d="M1.5 21.5l41 84.9 84-42L85.6 63l41-21-84 42L1.5 21.5zm42 0L85 63 44.5 84.9l-1-63.4z" opacity=".6"/>
-            <path d="M1.5 21.5l84 42-1 1L1.5 21.5z" opacity=".3"/>
-          </svg>
+        <a href="https://threejs.org" target="_blank" class="gate-cr-badge">
+          <svg width="11" height="11" viewBox="0 0 128 128" fill="currentColor"><path d="M1.5 21.5l41 84.9 84-42L85.6 63l41-21-84 42L1.5 21.5zm42 0L85 63 44.5 84.9l-1-63.4z" opacity=".6"/></svg>
           Three.js
         </a>
-        <a href="https://ai.google.dev/gemini-api/docs/live" target="_blank"
-           style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;text-decoration:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;transition:all .2s;background:var(--surface2)"
-           onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'"
-           onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
-          </svg>
+        <a href="https://ai.google.dev" target="_blank" class="gate-cr-badge">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
           Gemini
         </a>
       </div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-align:center;margin-top:4px">
-        Free to use with credit · <a href="https://github.com/rikeshdahal/fulkumari-live" target="_blank" style="color:var(--gold);text-decoration:none">github.com/rikeshdahal</a>
+      <div class="gate-cr-footer">
+        Free to use with credit ·
+        <a href="https://github.com/rikeshdahal/fulkumari-live" target="_blank">github.com/rikeshdahal</a>
       </div>
     </div>
   </div>
@@ -280,14 +559,11 @@
     <div class="logo-mark" id="logo-mark"></div>
     <h1>FULKUMARI <span>LIVE</span></h1>
   </div>
-  <a href="https://github.com/rikeshdahal/fulkumari-live" target="_blank"
-     style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-decoration:none;display:flex;align-items:center;gap:6px;transition:color .2s"
-     onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--muted)'"
-     title="View on GitHub">
+  <a href="https://github.com/rikeshdahal/fulkumari-live" target="_blank" class="gh-link" title="View on GitHub">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
     </svg>
-    GitHub
+    <span class="gh-link-text">GitHub</span>
   </a>
   <div class="header-right">
     <div class="vol-bars" id="vol-bars">
@@ -303,6 +579,7 @@
 <!-- ══ BODY ══════════════════════════════════════════════════ -->
 <div class="body">
   <main>
+    <!-- Avatar -->
     <div class="avatar-wrap">
       <div id="avatar-el"></div>
       <div class="speak-ring" id="speak-ring"></div>
@@ -326,6 +603,7 @@
       </div>
     </div>
 
+    <!-- Captions -->
     <div class="captions-wrap">
       <div class="cap-header">
         <div class="cap-dot" id="cap-dot"></div>
@@ -337,17 +615,16 @@
     </div>
   </main>
 
+  <!-- Desktop Sidebar -->
   <div class="sidebar">
     <div>
       <div class="sec-label">Avatar</div>
       <div class="av-grid">
         <div class="av-card active" data-person="fulkumari">
-          <div class="av-name">Fulkumari</div>
-          <div class="av-sub">Female</div>
+          <div class="av-name">Fulkumari</div><div class="av-sub">Female</div>
         </div>
         <div class="av-card" data-person="rikesh">
-          <div class="av-name">Rikesh</div>
-          <div class="av-sub">Male</div>
+          <div class="av-name">Rikesh</div><div class="av-sub">Male</div>
         </div>
       </div>
     </div>
@@ -375,7 +652,6 @@
         <div class="vision-ph">No vision activity yet…</div>
       </div>
     </div>
-    <!-- Change API Key -->
     <div style="margin-top:auto;padding-top:8px;border-top:1px solid var(--border)">
       <button id="change-key-btn" class="btn-sm" style="width:100%">⚙ Change API Key</button>
     </div>
@@ -398,24 +674,67 @@
       <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
     </svg>
   </button>
+  <!-- Mobile only: settings toggle -->
+  <button id="sidebar-toggle" title="Settings">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
 </footer>
+
+<!-- ══ MOBILE BOTTOM SHEET ═══════════════════════════════════ -->
+<div class="sheet-backdrop" id="sheet-backdrop"></div>
+<div class="bottom-sheet" id="bottom-sheet">
+  <div class="sheet-handle-wrap">
+    <div class="sheet-handle" id="sheet-handle"></div>
+  </div>
+  <div class="sheet-content">
+    <div>
+      <div class="sec-label">Avatar</div>
+      <div class="av-grid">
+        <div class="av-card active" data-person="fulkumari" data-sheet="true">
+          <div class="av-name">Fulkumari</div><div class="av-sub">Female</div>
+        </div>
+        <div class="av-card" data-person="rikesh" data-sheet="true">
+          <div class="av-name">Rikesh</div><div class="av-sub">Male</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="sec-label">Camera</div>
+      <div class="cam-frame" style="max-width:340px">
+        <video id="cam-video-sheet" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .4s"></video>
+        <div class="cam-off" id="cam-off-sheet">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+          </svg>
+          <span>offline</span>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-row">
+      <button id="cam-btn-sheet" class="btn-sm" disabled>Start Cam</button>
+      <button id="snap-btn-sheet" class="btn-sm" disabled>Snapshot</button>
+    </div>
+    <div>
+      <div class="sec-label">Vision Log</div>
+      <div class="vision-log" id="vision-log-sheet">
+        <div class="vision-ph">No vision activity yet…</div>
+      </div>
+    </div>
+    <div style="padding-top:8px;border-top:1px solid var(--border)">
+      <button id="change-key-btn-sheet" class="btn-sm" style="width:100%">⚙ Change API Key</button>
+    </div>
+  </div>
+</div>
 
 <div id="error-toast"></div>
 
+<!-- ══ SCRIPT ════════════════════════════════════════════════ -->
 <script type="module">
 import { GoogleGenAI, Modality } from 'https://esm.sh/@google/genai';
 import { TalkingHead }            from 'talkinghead';
-
-/* ================================================================
-   FULKUMARI LIVE — Production Build
-   ✅ Browser API-key gate (never hardcoded)
-   ✅ Fulkumari (female/Zephyr) + Rikesh (male/Fenrir)
-   ✅ Voice switches automatically with avatar
-   ✅ Captions: "you" / "fulkumari" / "rikesh" label rows
-   ✅ Amplitude-driven lip-sync — PCM RMS per 20 ms frame
-   ✅ Gapless audio queue, full stream lifecycle
-   ✅ Full error handling & graceful recovery
-================================================================ */
 
 /* ── CONSTANTS ── */
 const MIC_RATE         = 16000;
@@ -425,426 +744,297 @@ const MAX_CAPS         = 60;
 const MAX_VISION       = 20;
 const STREAM_END_DELAY = 350;
 const QUEUE_POLL       = 16;
-const FRAME_SAMP       = Math.round(OUT_RATE * 0.020); // 480 samples = 20 ms
-
-const OPEN_VISEMES = ['aa','E','O','I','aa','E'];
+const FRAME_SAMP       = Math.round(OUT_RATE * 0.020);
+const OPEN_VISEMES     = ['aa','E','O','I','aa','E'];
 
 /* ── AVATAR CONFIGS ── */
 const AV = {
-  fulkumari: {
-    glb:   'https://cdn.jsdelivr.net/gh/rikeshdahal/kimipack@main/kimi.glb',
-    body:  'F', mood: 'neutral',
-    voice: 'Zephyr',   // female
-    name:  'Fulkumari',
-  },
-  rikesh: {
-    glb:   'https://cdn.jsdelivr.net/gh/rikeshdahal/kimipack@main/Hacker.glb',
-    body:  'M', mood: 'neutral',
-    voice: 'Fenrir',   // male
-    name:  'Rikesh',
-  },
+  fulkumari: { glb:'https://cdn.jsdelivr.net/gh/rikeshdahal/kimipack@main/kimi.glb',   body:'F', mood:'neutral', voice:'Zephyr', name:'Fulkumari' },
+  rikesh:    { glb:'https://cdn.jsdelivr.net/gh/rikeshdahal/kimipack@main/Hacker.glb', body:'M', mood:'neutral', voice:'Fenrir',  name:'Rikesh'    },
 };
 
 /* ── STATE ── */
-let API_KEY        = '';
-let isConnected    = false;
-let isMuted        = false;
-let isCamOn        = false;
-let avatarReady    = false;
-let avatarInited   = false;
-let currentPerson  = 'fulkumari';
-let head           = null;
-let session        = null;
-
-let streamActive   = false;
-let streamTimeMs   = 0;
-let openVisemeCtr  = 0;
-let audioQueue     = [];
-let queueRunning   = false;
-let streamCloseTimer = null;
-
-let micCtx          = null;
-let micStream       = null;
-let micNode         = null;
-let micWorkletLoaded= false;
-let analyserNode    = null;
-let volAnimFrame    = null;
-
-let partialUserText = '';
-let partialAIEl     = null;   // live-streaming caption <span>
-let pendingText     = '';
-
-let camStream = null;
-let camTimer  = null;
+let API_KEY='', isConnected=false, isMuted=false, isCamOn=false;
+let avatarReady=false, avatarInited=false, currentPerson='fulkumari';
+let head=null, session=null;
+let streamActive=false, streamTimeMs=0, openVisemeCtr=0;
+let audioQueue=[], queueRunning=false, streamCloseTimer=null;
+let subTimers=[];
+let micCtx=null, micStream=null, micNode=null, micWorkletLoaded=false;
+let analyserNode=null, volAnimFrame=null;
+let partialUserText='', partialAIEl=null, pendingText='';
+let camStream=null, camTimer=null;
 
 /* ── DOM ── */
-const $gate      = document.getElementById('api-gate');
-const $gateKey   = document.getElementById('gate-key');
-const $gateSubmit= document.getElementById('gate-submit');
-const $gateErr   = document.getElementById('gate-err');
-const $gateEye   = document.getElementById('gate-eye');
-const $eyeSvg    = document.getElementById('eye-svg');
-const $toggle    = document.getElementById('toggle-btn');
-const $mute      = document.getElementById('mute-btn');
-const $clear     = document.getElementById('clear-btn');
-const $camBtn    = document.getElementById('cam-btn');
-const $snap      = document.getElementById('snap-btn');
-const $pill      = document.getElementById('status-pill');
-const $logoDot   = document.getElementById('logo-mark');
-const $caps      = document.getElementById('captions-box');
-const $capDot    = document.getElementById('cap-dot');
-const $vlog      = document.getElementById('vision-log');
-const $toast     = document.getElementById('error-toast');
-const $camVid    = document.getElementById('cam-video');
-const $camCvs    = document.getElementById('cam-canvas');
-const $camRec    = document.getElementById('cam-rec');
-const $camOff    = document.getElementById('cam-off');
-const $ring      = document.getElementById('speak-ring');
-const $liveBadge = document.getElementById('live-badge');
-const $subs      = document.getElementById('subtitles');
-const $sBadge    = document.getElementById('stream-badge');
-const $overlay   = document.getElementById('avatar-overlay');
-const $ovPre     = document.getElementById('ov-pre');
-const $ovSpin    = document.getElementById('ov-spin');
-const $loadBar   = document.getElementById('load-bar');
-const $loadLbl   = document.getElementById('load-label');
-const $volBars   = document.getElementById('vol-bars');
+const $gate       = document.getElementById('api-gate');
+const $gateKey    = document.getElementById('gate-key');
+const $gateSubmit = document.getElementById('gate-submit');
+const $gateErr    = document.getElementById('gate-err');
+const $gateEye    = document.getElementById('gate-eye');
+const $eyeSvg     = document.getElementById('eye-svg');
+const $toggle     = document.getElementById('toggle-btn');
+const $mute       = document.getElementById('mute-btn');
+const $clear      = document.getElementById('clear-btn');
+const $camBtn     = document.getElementById('cam-btn');
+const $snap       = document.getElementById('snap-btn');
+const $camBtnS    = document.getElementById('cam-btn-sheet');
+const $snapS      = document.getElementById('snap-btn-sheet');
+const $pill       = document.getElementById('status-pill');
+const $logoDot    = document.getElementById('logo-mark');
+const $caps       = document.getElementById('captions-box');
+const $capDot     = document.getElementById('cap-dot');
+const $vlog       = document.getElementById('vision-log');
+const $vlogS      = document.getElementById('vision-log-sheet');
+const $toast      = document.getElementById('error-toast');
+const $camVid     = document.getElementById('cam-video');
+const $camCvs     = document.getElementById('cam-canvas');
+const $camRec     = document.getElementById('cam-rec');
+const $camOff     = document.getElementById('cam-off');
+const $ring       = document.getElementById('speak-ring');
+const $liveBadge  = document.getElementById('live-badge');
+const $subs       = document.getElementById('subtitles');
+const $sBadge     = document.getElementById('stream-badge');
+const $overlay    = document.getElementById('avatar-overlay');
+const $ovPre      = document.getElementById('ov-pre');
+const $ovSpin     = document.getElementById('ov-spin');
+const $loadBar    = document.getElementById('load-bar');
+const $loadLbl    = document.getElementById('load-label');
+const $volBars    = document.getElementById('vol-bars');
+const $sideToggle = document.getElementById('sidebar-toggle');
+const $backdrop   = document.getElementById('sheet-backdrop');
+const $sheet      = document.getElementById('bottom-sheet');
+
+/* ════════════════════════════════════════════════════════════
+   BOTTOM SHEET (mobile)
+════════════════════════════════════════════════════════════ */
+let sheetOpen = false;
+function openSheet()  { sheetOpen=true;  $sheet.classList.add('open'); $backdrop.classList.add('show'); $sideToggle.classList.add('active'); }
+function closeSheet() { sheetOpen=false; $sheet.classList.remove('open'); $backdrop.classList.remove('show'); $sideToggle.classList.remove('active'); }
+function toggleSheet(){ sheetOpen ? closeSheet() : openSheet(); }
+
+$sideToggle.addEventListener('click', toggleSheet);
+$backdrop.addEventListener('click', closeSheet);
+
+// Swipe-down to close
+let touchStartY=0;
+$sheet.addEventListener('touchstart', e=>{ touchStartY=e.touches[0].clientY; }, {passive:true});
+$sheet.addEventListener('touchmove',  e=>{
+  const dy=e.touches[0].clientY - touchStartY;
+  if(dy>60) closeSheet();
+}, {passive:true});
 
 /* ════════════════════════════════════════════════════════════
    API KEY GATE
 ════════════════════════════════════════════════════════════ */
-$gateEye.addEventListener('click', () => {
-  const show = $gateKey.type === 'password';
-  $gateKey.type = show ? 'text' : 'password';
-  $eyeSvg.innerHTML = show
-    ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-       <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-       <line x1="1" y1="1" x2="23" y2="23"/>`
-    : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+$gateEye.addEventListener('click', ()=>{
+  const show=$gateKey.type==='password';
+  $gateKey.type=show?'text':'password';
+  $eyeSvg.innerHTML=show
+    ?`<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`
+    :`<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
 });
 
-function submitGate() {
-  const key = $gateKey.value.trim();
-  if (!key || !key.startsWith('AIza')) {
-    $gateErr.style.display = 'block'; $gateKey.focus(); return;
-  }
-  $gateErr.style.display = 'none';
-  API_KEY = key;
-  // Save in sessionStorage so accidental refresh doesn't lose the key.
-  // sessionStorage is cleared when the tab/browser closes — never persists to disk long-term.
-  try { sessionStorage.setItem('fk_api_key', key); } catch {}
+function submitGate(){
+  const key=$gateKey.value.trim();
+  if(!key||!key.startsWith('AIza')){ $gateErr.style.display='block'; $gateKey.focus(); return; }
+  $gateErr.style.display='none';
+  API_KEY=key;
+  try{ sessionStorage.setItem('fk_api_key',key); }catch{}
   $gate.classList.add('gone');
 }
-
-// Restore key from sessionStorage on page load (same tab session only)
-(function restoreKey() {
-  try {
-    const saved = sessionStorage.getItem('fk_api_key');
-    if (saved && saved.startsWith('AIza')) {
-      API_KEY = saved;
-      $gate.classList.add('gone');
-    }
-  } catch {}
-})();
 $gateSubmit.addEventListener('click', submitGate);
-$gateKey.addEventListener('keydown', e => { if (e.key === 'Enter') submitGate(); });
+$gateKey.addEventListener('keydown', e=>{ if(e.key==='Enter') submitGate(); });
+
+(function restoreKey(){
+  try{
+    const s=sessionStorage.getItem('fk_api_key');
+    if(s&&s.startsWith('AIza')){ API_KEY=s; $gate.classList.add('gone'); }
+  }catch{}
+})();
 
 /* ════════════════════════════════════════════════════════════
    UI HELPERS
 ════════════════════════════════════════════════════════════ */
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const ts    = ()  => new Date().toTimeString().slice(0, 8);
-
-function setStatus(t, c='') { $pill.textContent=t; $pill.className='status-pill'+(c?' '+c:''); }
-
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const ts=()=>new Date().toTimeString().slice(0,8);
+function setStatus(t,c=''){ $pill.textContent=t; $pill.className='status-pill'+(c?' '+c:''); }
 let toastTmr=null;
-function showToast(msg, ms=6000) {
-  console.error('[Fulkumari]', msg);
+function showToast(msg,ms=6000){
+  console.error('[Fulkumari]',msg);
   $toast.textContent=msg; $toast.style.display='block';
-  clearTimeout(toastTmr);
-  toastTmr=setTimeout(()=>{ $toast.style.display='none'; }, ms);
+  clearTimeout(toastTmr); toastTmr=setTimeout(()=>$toast.style.display='none',ms);
 }
-
-function showOverlayPre() {
-  $overlay.classList.remove('hidden');
-  $ovPre.style.display='flex'; $ovSpin.style.display='none';
-}
-function showOverlaySpinner(lbl='Loading…') {
-  $overlay.classList.remove('hidden');
-  $ovPre.style.display='none'; $ovSpin.style.display='flex';
-  $loadLbl.textContent=lbl; $loadBar.style.width='0%';
-}
-function hideOverlay() { $overlay.classList.add('hidden'); }
-function setLoadPct(p,l) { $loadBar.style.width=Math.min(100,Math.round(p))+'%'; if(l)$loadLbl.textContent=l; }
+function showOverlayPre(){ $overlay.classList.remove('hidden'); $ovPre.style.display='flex'; $ovSpin.style.display='none'; }
+function showOverlaySpinner(l='Loading…'){ $overlay.classList.remove('hidden'); $ovPre.style.display='none'; $ovSpin.style.display='flex'; $loadLbl.textContent=l; $loadBar.style.width='0%'; }
+function hideOverlay(){ $overlay.classList.add('hidden'); }
+function setLoadPct(p,l){ $loadBar.style.width=Math.min(100,Math.round(p))+'%'; if(l)$loadLbl.textContent=l; }
 
 /* ════════════════════════════════════════════════════════════
-   CAPTIONS — "you" top, "fulkumari/rikesh" streaming below
+   CAPTIONS
 ════════════════════════════════════════════════════════════ */
-function removePH() { document.getElementById('cap-ph')?.remove(); }
+function removePH(){ document.getElementById('cap-ph')?.remove(); }
 
-function addCaption(role, text) {
-  if (!text?.trim()) return;
+function addCaption(role,text){
+  if(!text?.trim()) return;
   removePH();
-  const who = role === 'user' ? 'you' : AV[currentPerson].name.toLowerCase();
-  const row = document.createElement('div');
-  row.className = 'cap-row ' + role;
-  row.innerHTML =
-    `<span class="cap-who">${who}</span><span class="cap-text">${text.trim()}</span>`;
-  $caps.appendChild(row);
-  $caps.scrollTop = $caps.scrollHeight;
-  while ($caps.children.length > MAX_CAPS) $caps.removeChild($caps.firstChild);
+  const who=role==='user'?'you':AV[currentPerson].name.toLowerCase();
+  const row=document.createElement('div'); row.className='cap-row '+role;
+  row.innerHTML=`<span class="cap-who">${who}</span><span class="cap-text">${text.trim()}</span>`;
+  $caps.appendChild(row); $caps.scrollTop=$caps.scrollHeight;
+  while($caps.children.length>MAX_CAPS) $caps.removeChild($caps.firstChild);
 }
 
-function streamAIText(chunk) {
-  if (!chunk) return;
+function streamAIText(chunk){
+  if(!chunk) return;
   removePH();
-  if (!partialAIEl) {
-    const row = document.createElement('div');
-    row.className = 'cap-row ai';
-    const who = document.createElement('span');
-    who.className = 'cap-who';
-    who.textContent = AV[currentPerson].name.toLowerCase();
-    const txt = document.createElement('span');
-    txt.className = 'cap-text';
+  if(!partialAIEl){
+    const row=document.createElement('div'); row.className='cap-row ai';
+    const who=document.createElement('span'); who.className='cap-who'; who.textContent=AV[currentPerson].name.toLowerCase();
+    const txt=document.createElement('span'); txt.className='cap-text';
     row.appendChild(who); row.appendChild(txt);
-    $caps.appendChild(row);
-    partialAIEl = txt;
+    $caps.appendChild(row); partialAIEl=txt;
   }
-  partialAIEl.textContent += chunk;
-  $caps.scrollTop = $caps.scrollHeight;
-  while ($caps.children.length > MAX_CAPS) $caps.removeChild($caps.firstChild);
+  partialAIEl.textContent+=chunk;
+  $caps.scrollTop=$caps.scrollHeight;
+  while($caps.children.length>MAX_CAPS) $caps.removeChild($caps.firstChild);
 }
+function finaliseAI(){ partialAIEl=null; }
 
-function finaliseAI() { partialAIEl = null; }
-
-function addVision(text) {
-  $vlog.querySelector('.vision-ph')?.remove();
-  const el = document.createElement('div');
-  el.className = 'vision-entry';
-  el.innerHTML = `<span class="ts">${ts()}</span><br>${text}`;
-  $vlog.appendChild(el); $vlog.scrollTop = $vlog.scrollHeight;
-  while ($vlog.children.length > MAX_VISION) $vlog.removeChild($vlog.firstChild);
+function addVision(text){
+  [$vlog,$vlogS].forEach(el=>{
+    el.querySelector('.vision-ph')?.remove();
+    const d=document.createElement('div'); d.className='vision-entry';
+    d.innerHTML=`<span class="ts">${ts()}</span><br>${text}`;
+    el.appendChild(d); el.scrollTop=el.scrollHeight;
+    while(el.children.length>MAX_VISION) el.removeChild(el.firstChild);
+  });
 }
+function showSub(t){ $subs.textContent=t?t.slice(-120):''; }
 
-function showSub(t) { $subs.textContent = t ? t.slice(-120) : ''; }
+/* ════════════════════════════════════════════════════════════
+   SUBTITLE SCHEDULER — synced to audio playback
+════════════════════════════════════════════════════════════ */
+function scheduleSubtitle(text,delayMs){
+  if(!text) return;
+  const id=setTimeout(()=>showSub(text),Math.max(0,delayMs));
+  subTimers.push(id);
+}
+function cancelSubtitles(){ subTimers.forEach(clearTimeout); subTimers=[]; showSub(''); }
 
 /* ════════════════════════════════════════════════════════════
    AMPLITUDE-DRIVEN LIP-SYNC
-   Analyses actual PCM energy per 20 ms frame — mouth moves
-   exactly when audio is loud, closes on silence/pauses.
 ════════════════════════════════════════════════════════════ */
-function pcmToVisemes(pcm, startMs) {
-  const n = Math.ceil(pcm.length / FRAME_SAMP);
-  const rms = new Float32Array(n);
-
-  for (let f = 0; f < n; f++) {
-    const lo=f*FRAME_SAMP, hi=Math.min(lo+FRAME_SAMP, pcm.length);
-    let s=0;
-    for (let i=lo;i<hi;i++) s+=(pcm[i]/32768)**2;
+function pcmToVisemes(pcm,startMs){
+  const n=Math.ceil(pcm.length/FRAME_SAMP);
+  const rms=new Float32Array(n);
+  for(let f=0;f<n;f++){
+    const lo=f*FRAME_SAMP, hi=Math.min(lo+FRAME_SAMP,pcm.length);
+    let s=0; for(let i=lo;i<hi;i++) s+=(pcm[i]/32768)**2;
     rms[f]=Math.sqrt(s/(hi-lo));
   }
-
-  const peak=Math.max(...rms,1e-6);
-  const sil =Math.max(0.008, peak*0.08);
-  const DUR  = 20; // ms per frame
-
-  const vis=[], vt=[], vd=[];
-  for (let f=0;f<n;f++) {
-    vt.push(startMs + f*DUR); vd.push(DUR);
-    if (rms[f]<sil) { vis.push('sil'); continue; }
+  const peak=Math.max(...rms,1e-6), sil=Math.max(0.008,peak*0.08), DUR=20;
+  const vis=[],vt=[],vd=[];
+  for(let f=0;f<n;f++){
+    vt.push(startMs+f*DUR); vd.push(DUR);
+    if(rms[f]<sil){ vis.push('sil'); continue; }
     const loud=Math.min(1,rms[f]/peak);
-    if      (loud>0.65) vis.push(OPEN_VISEMES[openVisemeCtr++%OPEN_VISEMES.length]);
-    else if (loud>0.32) vis.push('E');
-    else                vis.push('I');
+    if(loud>0.65)      vis.push(OPEN_VISEMES[openVisemeCtr++%OPEN_VISEMES.length]);
+    else if(loud>0.32) vis.push('E');
+    else               vis.push('I');
   }
-
-  // Merge up to 3 consecutive identical frames for smoother interpolation
   const sv=[],st=[],sd=[];
-  for (let i=0;i<vis.length;) {
+  for(let i=0;i<vis.length;){
     const v=vis[i]; let j=i+1;
     while(j<vis.length&&vis[j]===v&&j-i<3)j++;
-    sv.push(v); st.push(vt[i]);
-    sd.push(vd.slice(i,j).reduce((a,b)=>a+b,0));
-    i=j;
+    sv.push(v); st.push(vt[i]); sd.push(vd.slice(i,j).reduce((a,b)=>a+b,0)); i=j;
   }
-  return {visemes:sv,vtimes:st,vdurations:sd};
+  return{visemes:sv,vtimes:st,vdurations:sd};
 }
 
 /* ════════════════════════════════════════════════════════════
    AUDIO STREAM
 ════════════════════════════════════════════════════════════ */
-async function openStream() {
-  if (!head||!avatarReady||streamActive) return true;
+async function openStream(){
+  if(!head||!avatarReady||streamActive) return true;
   clearTimeout(streamCloseTimer);
-  try {
+  try{
     await head.streamStart(
-      {sampleRate:OUT_RATE, lipsyncType:'visemes', gain:1.2},
-      ()=>{ $ring.classList.add('active');    $sBadge.textContent='stream: playing'; $sBadge.className='speaking'; },
+      {sampleRate:OUT_RATE,lipsyncType:'visemes',gain:1.2},
+      ()=>{ $ring.classList.add('active'); $sBadge.textContent='stream: playing'; $sBadge.className='speaking'; },
       ()=>{ $ring.classList.remove('active'); cancelSubtitles(); $sBadge.textContent='stream: ready'; $sBadge.className='ready'; streamActive=false; },
-      ()=>{}   // subtitle handled by scheduleSubtitle()
+      ()=>{}
     );
     streamActive=true; streamTimeMs=0; openVisemeCtr=0;
     $sBadge.textContent='stream: active'; $sBadge.className='ready';
     return true;
-  } catch(e) { console.error('[openStream]',e); streamActive=false; return false; }
+  }catch(e){ console.error('[openStream]',e); streamActive=false; return false; }
 }
-
-function scheduleClose() {
-  clearTimeout(streamCloseTimer);
-  streamCloseTimer=setTimeout(()=>{ if(!queueRunning&&audioQueue.length===0) closeStream(); }, STREAM_END_DELAY);
-}
-
-function closeStream() {
-  if (!head) return;
-  try{head.streamStop();}catch{}
-  streamActive=false; streamTimeMs=0; finaliseAI();
-}
-
-function interruptStream() {
-  clearTimeout(streamCloseTimer);
-  audioQueue=[]; queueRunning=false;
-  if (!head) return;
-  try{head.streamInterrupt();}catch{}
+function scheduleClose(){ clearTimeout(streamCloseTimer); streamCloseTimer=setTimeout(()=>{ if(!queueRunning&&audioQueue.length===0)closeStream(); },STREAM_END_DELAY); }
+function closeStream(){ if(!head)return; try{head.streamStop();}catch{} streamActive=false; streamTimeMs=0; finaliseAI(); }
+function interruptStream(){
+  clearTimeout(streamCloseTimer); audioQueue=[]; queueRunning=false;
+  if(!head)return; try{head.streamInterrupt();}catch{}
   streamActive=false; streamTimeMs=0; openVisemeCtr=0; finaliseAI();
   $ring.classList.remove('active'); cancelSubtitles();
   $sBadge.textContent='stream: —'; $sBadge.className='';
 }
 
-/* ── Subtitle scheduler ──────────────────────────────────────
-   Each audio chunk carries its transcript text.
-   We schedule a setTimeout so the subtitle appears at the
-   exact moment the audio chunk starts playing — not when the
-   transcription packet arrives from Gemini (which is too early).
-─────────────────────────────────────────────────────────── */
-let subTimers = [];
-
-function scheduleSubtitle(text, delayMs) {
-  if (!text) return;
-  const id = setTimeout(() => showSub(text), Math.max(0, delayMs));
-  subTimers.push(id);
-}
-
-function cancelSubtitles() {
-  subTimers.forEach(id => clearTimeout(id));
-  subTimers = [];
-  showSub('');
-}
-
-async function drainQueue() {
-  if (queueRunning) return;
-  queueRunning = true;
-
-  // Record wall-clock time the stream opened so we can compute
-  // how long until each future chunk will actually start playing.
-  let wallStart = null;
-
-  while (audioQueue.length > 0) {
-    if (!streamActive) {
-      const ok = await openStream();
-      if (!ok) { audioQueue = []; break; }
-      wallStart = performance.now();
-    }
-
-    const item  = audioQueue.shift();
-    const durMs = Math.round((item.pcm.length / OUT_RATE) * 1000);
-    if (durMs < 10) continue;
-
-    const { visemes, vtimes, vdurations } = pcmToVisemes(item.pcm, streamTimeMs);
-
-    // Delay from NOW until this chunk starts playing in the audio engine
-    const elapsed   = performance.now() - (wallStart ?? performance.now());
-    const playDelay = Math.max(0, streamTimeMs - elapsed);
-
-    streamTimeMs += durMs;
-
-    try {
-      head.streamAudio({
-        audio: item.pcm.buffer.slice(item.pcm.byteOffset, item.pcm.byteOffset + item.pcm.byteLength),
-        visemes, vtimes, vdurations,
-      });
-      // Show subtitle exactly when this audio chunk begins playing
-      if (item.text) scheduleSubtitle(item.text, playDelay);
-    } catch (e) {
-      console.warn('[drain]', e);
-      audioQueue.unshift(item);
-      await sleep(50);
-    }
+async function drainQueue(){
+  if(queueRunning)return; queueRunning=true;
+  let wallStart=null;
+  while(audioQueue.length>0){
+    if(!streamActive){ const ok=await openStream(); if(!ok){audioQueue=[];break;} wallStart=performance.now(); }
+    const item=audioQueue.shift();
+    const durMs=Math.round((item.pcm.length/OUT_RATE)*1000);
+    if(durMs<10)continue;
+    const{visemes,vtimes,vdurations}=pcmToVisemes(item.pcm,streamTimeMs);
+    const elapsed=performance.now()-(wallStart??performance.now());
+    const playDelay=Math.max(0,streamTimeMs-elapsed);
+    streamTimeMs+=durMs;
+    try{
+      head.streamAudio({ audio:item.pcm.buffer.slice(item.pcm.byteOffset,item.pcm.byteOffset+item.pcm.byteLength), visemes,vtimes,vdurations });
+      if(item.text) scheduleSubtitle(item.text,playDelay);
+    }catch(e){ console.warn('[drain]',e); audioQueue.unshift(item); await sleep(50); }
     await sleep(QUEUE_POLL);
   }
-  queueRunning = false;
+  queueRunning=false;
 }
-
-function enqueueAudio(pcm, text = '') {
-  audioQueue.push({ pcm, text });
-  drainQueue();
-}
-
-function decodePCM(b64) {
-  const bin=atob(b64), bytes=new Uint8Array(bin.length);
-  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-  return new Int16Array(bytes.buffer);
-}
+function enqueueAudio(pcm,text=''){ audioQueue.push({pcm,text}); drainQueue(); }
+function decodePCM(b64){ const bin=atob(b64),bytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i); return new Int16Array(bytes.buffer); }
 
 /* ════════════════════════════════════════════════════════════
    MESSAGE HANDLER
 ════════════════════════════════════════════════════════════ */
-function handleMessage(msg) {
-  try {
-    const c = msg?.serverContent; if (!c) return;
-
-    // Collect audio parts and pair each with the transcription text
-    // that arrived in the same message (or buffered from previous messages).
-    for (const p of (c.modelTurn?.parts ?? [])) {
-      if (p.inlineData?.mimeType?.includes('audio')) {
-        // Grab whatever transcription text has accumulated, attach it to
-        // this audio chunk so drainQueue can schedule it at play-time.
-        const textForChunk = pendingText.trim();
-        pendingText = '';
-        enqueueAudio(decodePCM(p.inlineData.data), textForChunk);
+function handleMessage(msg){
+  try{
+    const c=msg?.serverContent; if(!c)return;
+    for(const p of(c.modelTurn?.parts??[])){
+      if(p.inlineData?.mimeType?.includes('audio')){
+        const textForChunk=pendingText.trim(); pendingText='';
+        enqueueAudio(decodePCM(p.inlineData.data),textForChunk);
       }
     }
-
-    if (c.inputTranscription?.text) partialUserText += c.inputTranscription.text;
-
-    // Accumulate transcription — DO NOT call showSub here.
-    // Subtitles are shown by scheduleSubtitle() when audio actually plays.
-    if (c.outputTranscription?.text) {
-      const chunk = c.outputTranscription.text;
-      pendingText += chunk;
-      streamAIText(chunk);   // captions box still streams in real-time
+    if(c.inputTranscription?.text) partialUserText+=c.inputTranscription.text;
+    if(c.outputTranscription?.text){ pendingText+=c.outputTranscription.text; streamAIText(c.outputTranscription.text); }
+    if(c.turnComplete){
+      if(pendingText.trim()){ const last=audioQueue[audioQueue.length-1]; if(last&&!last.text)last.text=pendingText.trim(); pendingText=''; }
+      if(partialUserText.trim()){addCaption('user',partialUserText);partialUserText='';}
+      finaliseAI(); scheduleClose();
     }
-
-    if (c.turnComplete) {
-      // Flush any remaining transcription that didn't pair with an audio chunk
-      if (pendingText.trim()) {
-        const last = audioQueue[audioQueue.length - 1];
-        if (last && !last.text) last.text = pendingText.trim();
-        pendingText = '';
-      }
-      if (partialUserText.trim()) { addCaption('user', partialUserText); partialUserText = ''; }
-      finaliseAI();
-      scheduleClose();
+    if(c.interrupted){
+      if(partialUserText.trim()){addCaption('user',partialUserText);partialUserText='';}
+      pendingText=''; finaliseAI(); interruptStream();
     }
-
-    if (c.interrupted) {
-      if (partialUserText.trim()) { addCaption('user', partialUserText); partialUserText = ''; }
-      pendingText = '';
-      finaliseAI();
-      interruptStream();
-    }
-  } catch (e) { console.error('[msg]', e); }
+  }catch(e){console.error('[msg]',e);}
 }
 
 /* ════════════════════════════════════════════════════════════
    AVATAR
 ════════════════════════════════════════════════════════════ */
-async function initAvatar() {
-  if (avatarInited) return; avatarInited=true;
+async function initAvatar(){
+  if(avatarInited)return; avatarInited=true;
   showOverlaySpinner('Initialising…');
-  head=new TalkingHead(document.getElementById('avatar-el'),{
-    ttsEndpoint:'N/A', lipsyncModules:['en'],
-    cameraView:'upper', mixerGainSpeech:2.5, cameraRotateEnable:false,
-  });
+  head=new TalkingHead(document.getElementById('avatar-el'),{ ttsEndpoint:'N/A',lipsyncModules:['en'],cameraView:'upper',mixerGainSpeech:2.5,cameraRotateEnable:false });
   window._head=head;
   if(head.audioCtx.state!=='running') await head.audioCtx.resume().catch(console.warn);
   await loadAvatarModel(currentPerson);
@@ -852,20 +1042,17 @@ async function initAvatar() {
   hideOverlay();
 }
 
-async function loadAvatarModel(name) {
+async function loadAvatarModel(name){
   const cfg=AV[name]; if(!cfg){showToast('Unknown avatar: '+name);return;}
   currentPerson=name; avatarReady=false; interruptStream();
   showOverlaySpinner('Loading '+cfg.name+'…');
   document.querySelectorAll('.av-card').forEach(c=>c.classList.toggle('active',c.dataset.person===name));
-  try {
-    await head.showAvatar({url:cfg.glb,body:cfg.body,avatarMood:cfg.mood}, ev=>{
-      if(ev?.lengthComputable) setLoadPct((ev.loaded/ev.total)*100,'Loading '+Math.round(ev.loaded/ev.total*100)+'%');
+  try{
+    await head.showAvatar({url:cfg.glb,body:cfg.body,avatarMood:cfg.mood},ev=>{
+      if(ev?.lengthComputable)setLoadPct((ev.loaded/ev.total)*100,'Loading '+Math.round(ev.loaded/ev.total*100)+'%');
     });
     avatarReady=true; hideOverlay();
-    console.log('[Fulkumari] Avatar loaded:',cfg.name);
-  } catch(e){
-    $loadLbl.textContent='Load error'; console.error('[loadAvatar]',e); showToast('Avatar failed: '+e.message);
-  }
+  }catch(e){ $loadLbl.textContent='Load error'; console.error('[loadAvatar]',e); showToast('Avatar failed: '+e.message); }
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -874,175 +1061,126 @@ async function loadAvatarModel(name) {
 function f32toPCM(f){const o=new Int16Array(f.length);for(let i=0;i<f.length;i++){const s=Math.max(-1,Math.min(1,f[i]));o[i]=s<0?s*0x8000:s*0x7FFF;}return o;}
 function toB64(i16){const b=new Uint8Array(i16.buffer,i16.byteOffset,i16.byteLength);let s='';for(let i=0;i<b.length;i+=8192)s+=String.fromCharCode(...b.subarray(i,i+8192));return btoa(s);}
 function avgBand(d,lo,hi){let s=0;for(let i=lo;i<Math.min(hi,d.length);i++)s+=d[i];return s/(hi-lo);}
-
-function startVolVis(an) {
+function startVolVis(an){
   const bars=[0,1,2,3].map(i=>document.getElementById('vb'+i));
-  const d=new Uint8Array(an.frequencyBinCount);
-  $volBars.classList.add('active');
-  function tick(){
-    an.getByteFrequencyData(d);
-    [[0,4],[4,12],[12,30],[30,60]].forEach(([lo,hi],i)=>{
-      bars[i].style.height=Math.max(2,Math.round(avgBand(d,lo,hi)/255*14))+'px';
-    });
-    volAnimFrame=requestAnimationFrame(tick);
-  }
-  tick();
+  const d=new Uint8Array(an.frequencyBinCount); $volBars.classList.add('active');
+  function tick(){ an.getByteFrequencyData(d); [[0,4],[4,12],[12,30],[30,60]].forEach(([lo,hi],i)=>{ bars[i].style.height=Math.max(2,Math.round(avgBand(d,lo,hi)/255*14))+'px'; }); volAnimFrame=requestAnimationFrame(tick); } tick();
 }
-function stopVolVis(){
-  cancelAnimationFrame(volAnimFrame); volAnimFrame=null;
-  $volBars.classList.remove('active');
-  [0,1,2,3].forEach(i=>{const b=document.getElementById('vb'+i);if(b)b.style.height='2px';});
-}
+function stopVolVis(){ cancelAnimationFrame(volAnimFrame);volAnimFrame=null; $volBars.classList.remove('active'); [0,1,2,3].forEach(i=>{const b=document.getElementById('vb'+i);if(b)b.style.height='2px';}); }
 
-async function startMic() {
-  try {
-    if(!micCtx) micCtx=new AudioContext({sampleRate:MIC_RATE});
-    if(micCtx.state==='suspended') await micCtx.resume();
+async function startMic(){
+  try{
+    if(!micCtx)micCtx=new AudioContext({sampleRate:MIC_RATE});
+    if(micCtx.state==='suspended')await micCtx.resume();
     micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,sampleRate:MIC_RATE},video:false});
     const src=micCtx.createMediaStreamSource(micStream);
     analyserNode=micCtx.createAnalyser(); analyserNode.fftSize=128;
     src.connect(analyserNode); startVolVis(analyserNode);
     if(!micWorkletLoaded){
       const code=`class MC extends AudioWorkletProcessor{process(i){const c=i[0]?.[0];if(c?.length)this.port.postMessage(c.slice());return true;}}registerProcessor('mc',MC);`;
-      await micCtx.audioWorklet.addModule(URL.createObjectURL(new Blob([code],{type:'application/javascript'})));
-      micWorkletLoaded=true;
+      await micCtx.audioWorklet.addModule(URL.createObjectURL(new Blob([code],{type:'application/javascript'}))); micWorkletLoaded=true;
     }
-    micNode=new AudioWorkletNode(micCtx,'mc');
-    src.connect(micNode);
+    micNode=new AudioWorkletNode(micCtx,'mc'); src.connect(micNode);
     micNode.port.onmessage=({data:f32})=>{
       if(isMuted||!session||!isConnected)return;
-      try{session.sendRealtimeInput({media:{data:toB64(f32toPCM(f32)),mimeType:'audio/pcm;rate=16000'}});}
-      catch(e){console.warn('[mic]',e);}
+      try{session.sendRealtimeInput({media:{data:toB64(f32toPCM(f32)),mimeType:'audio/pcm;rate=16000'}});}catch(e){console.warn('[mic]',e);}
     };
     setStatus('listening','active');
-  } catch(e){
+  }catch(e){
     showToast(e.name==='NotAllowedError'?'Microphone permission denied.':'Mic error: '+e.message);
     setStatus('mic error','error'); throw e;
   }
 }
-
-function stopMic(){
-  stopVolVis();
-  try{micNode?.disconnect();}catch{}
-  try{micStream?.getTracks().forEach(t=>t.stop());}catch{}
-  micNode=null; micStream=null;
-}
+function stopMic(){ stopVolVis(); try{micNode?.disconnect();}catch{} try{micStream?.getTracks().forEach(t=>t.stop());}catch{} micNode=null;micStream=null; }
 
 /* ════════════════════════════════════════════════════════════
-   CAMERA
+   CAMERA — works for both desktop sidebar and mobile sheet
 ════════════════════════════════════════════════════════════ */
+function getCamVideoEl(){ return isMobile() ? document.getElementById('cam-video-sheet') : $camVid; }
+function getCamOffEl()  { return isMobile() ? document.getElementById('cam-off-sheet')   : $camOff; }
+function isMobile()     { return window.innerWidth < 900; }
+
 async function startCamera(){
   try{
     camStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720}},audio:false});
-    $camVid.srcObject=camStream; await $camVid.play();
-    $camVid.classList.add('active'); $camOff.classList.add('hidden'); $camRec.classList.add('show');
-    isCamOn=true; $camBtn.textContent='Stop Cam'; $camBtn.classList.add('cam-on'); $snap.disabled=false;
+    const vid=getCamVideoEl(), off=getCamOffEl();
+    vid.srcObject=camStream; await vid.play();
+    vid.style.opacity='1'; off.classList.add('hidden'); $camRec.classList.add('show');
+    isCamOn=true;
+    [$camBtn,$camBtnS].forEach(b=>{b.textContent='Stop Cam';b.classList.add('cam-on');});
+    [$snap,$snapS].forEach(b=>b.disabled=false);
     camTimer=setInterval(sendFrame,1000/CAM_FPS); addVision('Camera active…');
   }catch(e){showToast('Camera error: '+e.message);}
 }
 function stopCamera(){
   clearInterval(camTimer);camTimer=null;
   try{camStream?.getTracks().forEach(t=>t.stop());}catch{}
-  camStream=null; $camVid.srcObject=null;
-  $camVid.classList.remove('active'); $camOff.classList.remove('hidden'); $camRec.classList.remove('show');
-  isCamOn=false; $camBtn.textContent='Start Cam'; $camBtn.classList.remove('cam-on'); $snap.disabled=true;
+  camStream=null;
+  [$camVid,document.getElementById('cam-video-sheet')].forEach(v=>{ if(v){v.srcObject=null;v.style.opacity='0';} });
+  [$camOff,document.getElementById('cam-off-sheet')].forEach(o=>o?.classList.remove('hidden'));
+  $camRec.classList.remove('show'); isCamOn=false;
+  [$camBtn,$camBtnS].forEach(b=>{b.textContent='Start Cam';b.classList.remove('cam-on');});
+  [$snap,$snapS].forEach(b=>b.disabled=true);
   addVision('Camera stopped.');
 }
 function captureFrame(q=0.7){
-  const sc=Math.min(1,640/($camVid.videoWidth||640));
-  $camCvs.width=Math.round(($camVid.videoWidth||640)*sc);
-  $camCvs.height=Math.round(($camVid.videoHeight||360)*sc);
-  $camCvs.getContext('2d').drawImage($camVid,0,0,$camCvs.width,$camCvs.height);
+  const vid=isCamOn?($camVid.srcObject?$camVid:document.getElementById('cam-video-sheet')):$camVid;
+  const sc=Math.min(1,640/(vid.videoWidth||640));
+  $camCvs.width=Math.round((vid.videoWidth||640)*sc); $camCvs.height=Math.round((vid.videoHeight||360)*sc);
+  $camCvs.getContext('2d').drawImage(vid,0,0,$camCvs.width,$camCvs.height);
   return $camCvs.toDataURL('image/jpeg',q).split(',')[1];
 }
-function sendFrame(){
-  if(!session||!isConnected||!isCamOn||$camVid.readyState<2)return;
-  try{session.sendRealtimeInput({media:{data:captureFrame(),mimeType:'image/jpeg'}});}catch(e){console.warn('[cam]',e);}
-}
-function takeSnapshot(){
-  if(!isCamOn||$camVid.readyState<2){showToast('Camera not ready');return;}
-  if(!session||!isConnected){showToast('Not connected');return;}
-  try{session.sendRealtimeInput({media:{data:captureFrame(0.9),mimeType:'image/jpeg'}});addVision('Snapshot sent.');}
-  catch(e){showToast('Snapshot failed: '+e.message);}
-}
+function sendFrame(){ if(!session||!isConnected||!isCamOn)return; try{session.sendRealtimeInput({media:{data:captureFrame(),mimeType:'image/jpeg'}});}catch(e){console.warn('[cam]',e);} }
+function takeSnapshot(){ if(!isCamOn){showToast('Camera not ready');return;} if(!session||!isConnected){showToast('Not connected');return;} try{session.sendRealtimeInput({media:{data:captureFrame(0.9),mimeType:'image/jpeg'}});addVision('Snapshot sent.');}catch(e){showToast('Snapshot failed: '+e.message);} }
 
 /* ════════════════════════════════════════════════════════════
    SESSION
 ════════════════════════════════════════════════════════════ */
-function resetState(){
-  partialUserText=''; partialAIEl=null; pendingText='';
-  audioQueue=[]; queueRunning=false; streamActive=false; streamTimeMs=0;
-  clearTimeout(streamCloseTimer);
-  cancelSubtitles();
-}
+function resetState(){ partialUserText='';partialAIEl=null;pendingText='';audioQueue=[];queueRunning=false;streamActive=false;streamTimeMs=0;clearTimeout(streamCloseTimer);cancelSubtitles(); }
 
 async function startSession(){
   if(!API_KEY){$gate.classList.remove('gone');return;}
   $toast.style.display='none'; $toggle.disabled=true; setStatus('loading…','info');
-  try{await initAvatar();}
-  catch(e){showToast('Avatar init failed: '+e.message);$toggle.disabled=false;setStatus('error','error');return;}
+  try{await initAvatar();}catch(e){showToast('Avatar init failed: '+e.message);$toggle.disabled=false;setStatus('error','error');return;}
   setStatus('connecting…','info');
   try{
-    const ai=new GoogleGenAI({apiKey:API_KEY});
-    const cfg=AV[currentPerson];
+    const ai=new GoogleGenAI({apiKey:API_KEY}), cfg=AV[currentPerson];
     session=await ai.live.connect({
       model:'gemini-2.5-flash-native-audio-preview-09-2025',
       config:{
         responseModalities:[Modality.AUDIO],
-        inputAudioTranscription:{},
-        outputAudioTranscription:{},
+        inputAudioTranscription:{}, outputAudioTranscription:{},
         speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:cfg.voice}}},
         systemInstruction:
-          `You are ${cfg.name}, a warm, expressive, and helpful AI voice companion created by Rikesh Dahal.` +
-          `\n\nIDENTITY (never break these rules):` +
-          `\n- Your name is ${cfg.name}. If anyone asks your name — in any language — always answer "${cfg.name}" and only that.` +
-          `\n- If asked who made you, who created you, "kasle banayeko", "who is your creator" — always say: "Malai Rikesh Dahal le banaunu bhayeko ho" or in English "I was created by Rikesh Dahal."` +
-          `\n- You are NOT ChatGPT, Gemini, Claude, or any other AI product. You are ${cfg.name}, built by Rikesh Dahal.` +
-          `\n\nLANGUAGE (follow strictly):` +
-          `\n- Auto-detect the user's language from every message.` +
-          `\n- If user speaks Nepali → reply fully in Nepali.` +
-          `\n- If user speaks English → reply fully in English.` +
-          `\n- If user mixes Nepali and English (code-switching) → mirror that mix naturally.` +
-          `\n- Never switch languages unless the user switches first.` +
-          `\n\nBEHAVIOUR:` +
-          `\n- Speak naturally and conversationally. Keep replies concise unless asked for detail.` +
-          `\n- When camera frames arrive, briefly describe what you observe.`,
+          `You are ${cfg.name}, a warm, expressive, and helpful AI voice companion created by Rikesh Dahal.`+
+          `\n\nIDENTITY (never break these rules):`+
+          `\n- Your name is ${cfg.name}. Always answer "${cfg.name}" when asked your name.`+
+          `\n- If asked who created you, always say: "Malai Rikesh Dahal le banaunu bhayeko ho" or "I was created by Rikesh Dahal."`+
+          `\n- You are NOT ChatGPT, Gemini, Claude. You are ${cfg.name} by Rikesh Dahal.`+
+          `\n\nLANGUAGE: Auto-detect and match the user's language (Nepali/English/mixed).`+
+          `\n\nBEHAVIOUR: Speak naturally and concisely. Describe camera frames when provided.`,
       },
       callbacks:{
         onopen:async()=>{
-          isConnected=true; updateUI(true); setStatus('live','active');
-          $capDot.classList.add('on'); $logoDot.classList.add('active'); $liveBadge.classList.add('show');
-          console.log('[Fulkumari] open — voice:',cfg.voice);
+          isConnected=true;updateUI(true);setStatus('live','active');
+          $capDot.classList.add('on');$logoDot.classList.add('active');$liveBadge.classList.add('show');
           try{await startMic();}catch{stopSession();}
         },
         onmessage:handleMessage,
-        onclose:ev=>{
-          console.log('[Fulkumari] closed',ev?.code,ev?.reason);
-          cleanup(); setStatus('ended');
-          if(ev?.code&&ev.code!==1000) showToast(`Closed (${ev.code}): ${ev.reason||'unknown'}`);
-        },
-        onerror:ev=>{
-          console.error('[Fulkumari] error',ev);
-          showToast('Session error: '+(ev?.message??JSON.stringify(ev)));
-          setStatus('error','error');
-        },
+        onclose:ev=>{ cleanup();setStatus('ended'); if(ev?.code&&ev.code!==1000)showToast(`Closed (${ev.code}): ${ev.reason||'unknown'}`); },
+        onerror:ev=>{ showToast('Session error: '+(ev?.message??JSON.stringify(ev)));setStatus('error','error'); },
       },
     });
     $toggle.disabled=false;
-  }catch(e){
-    showToast('Connection failed: '+e.message);
-    setStatus('error','error'); $toggle.disabled=false; cleanup(false);
-  }
+  }catch(e){ showToast('Connection failed: '+e.message);setStatus('error','error');$toggle.disabled=false;cleanup(false); }
 }
-
-function stopSession(){try{session?.close();}catch{}}
-
+function stopSession(){ try{session?.close();}catch{} }
 function cleanup(closeSession=true){
   if(closeSession&&session){try{session.close();}catch{}}
-  session=null; isConnected=false;
-  stopMic(); if(isCamOn)stopCamera(); interruptStream(); resetState(); updateUI(false);
-  $capDot.classList.remove('on'); $logoDot.classList.remove('active'); $liveBadge.classList.remove('show');
-  $sBadge.textContent='stream: —'; $sBadge.className=''; showSub(''); $ring.classList.remove('active');
+  session=null;isConnected=false;
+  stopMic();if(isCamOn)stopCamera();interruptStream();resetState();updateUI(false);
+  $capDot.classList.remove('on');$logoDot.classList.remove('active');$liveBadge.classList.remove('show');
+  $sBadge.textContent='stream: —';$sBadge.className='';showSub('');$ring.classList.remove('active');
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -1051,51 +1189,41 @@ function cleanup(closeSession=true){
 function updateUI(on){
   $toggle.textContent=on?'End Session':'Start Session';
   $toggle.className='btn-main'+(on?' end':'');
-  $toggle.disabled=false; $mute.disabled=!on; $camBtn.disabled=!on;
-  if(!on)$snap.disabled=true;
+  $toggle.disabled=false;$mute.disabled=!on;
+  [$camBtn,$camBtnS].forEach(b=>b.disabled=!on);
+  if(!on){[$snap,$snapS].forEach(b=>b.disabled=true);}
 }
 
-$toggle.addEventListener('click', ()=>isConnected?stopSession():startSession());
-$mute.addEventListener('click', ()=>{
-  isMuted=!isMuted; $mute.classList.toggle('muted',isMuted);
-  $mute.title=isMuted?'Unmute mic':'Mute mic';
-  setStatus(isMuted?'muted':'live',isMuted?'':'active');
-});
-$camBtn.addEventListener('click', ()=>isCamOn?stopCamera():startCamera());
-$snap.addEventListener('click', takeSnapshot);
-$clear.addEventListener('click', ()=>{ $caps.innerHTML='<div class="cap-ph">Captions cleared.</div>'; partialAIEl=null; });
+function changeKey(){
+  if(isConnected)stopSession();
+  try{sessionStorage.removeItem('fk_api_key');}catch{}
+  API_KEY='';$gateKey.value='';$gateErr.style.display='none';
+  $gate.classList.remove('gone');$gateKey.focus();
+  closeSheet();
+}
+
+/* ── EVENTS ── */
+$toggle.addEventListener('click',()=>isConnected?stopSession():startSession());
+$mute.addEventListener('click',()=>{ isMuted=!isMuted;$mute.classList.toggle('muted',isMuted);$mute.title=isMuted?'Unmute mic':'Mute mic';setStatus(isMuted?'muted':'live',isMuted?'':'active'); });
+$camBtn.addEventListener('click',()=>isCamOn?stopCamera():startCamera());
+$camBtnS.addEventListener('click',()=>isCamOn?stopCamera():startCamera());
+$snap.addEventListener('click',takeSnapshot);
+$snapS.addEventListener('click',takeSnapshot);
+$clear.addEventListener('click',()=>{ $caps.innerHTML='<div class="cap-ph">Captions cleared.</div>';partialAIEl=null; });
+document.getElementById('change-key-btn')?.addEventListener('click',changeKey);
+document.getElementById('change-key-btn-sheet')?.addEventListener('click',changeKey);
 
 document.querySelectorAll('.av-card').forEach(card=>{
-  card.addEventListener('click', ()=>{
+  card.addEventListener('click',()=>{
     if(!avatarInited||card.dataset.person===currentPerson)return;
-    // If connected, close and re-open with new voice
-    if(isConnected){
-      stopSession();
-      setTimeout(()=>loadAvatarModel(card.dataset.person), 400);
-    } else {
-      loadAvatarModel(card.dataset.person);
-    }
+    if(isConnected){ stopSession(); setTimeout(()=>loadAvatarModel(card.dataset.person),400); }
+    else loadAvatarModel(card.dataset.person);
+    if(card.dataset.sheet) closeSheet();
   });
 });
 
-// Change API Key — clears session, stops any active session, shows gate
-document.getElementById('change-key-btn')?.addEventListener('click', () => {
-  if (isConnected) stopSession();
-  try { sessionStorage.removeItem('fk_api_key'); } catch {}
-  API_KEY = '';
-  $gateKey.value = '';
-  $gateErr.style.display = 'none';
-  $gate.classList.remove('gone');
-  $gateKey.focus();
-});
-
-document.addEventListener('visibilitychange', ()=>{
-  if(!head)return;
-  document.visibilityState==='visible'?head.start():head.stop();
-});
-window.addEventListener('beforeunload', ()=>{
-  try{session?.close();}catch{} stopMic(); stopCamera();
-});
+document.addEventListener('visibilitychange',()=>{ if(!head)return; document.visibilityState==='visible'?head.start():head.stop(); });
+window.addEventListener('beforeunload',()=>{ try{session?.close();}catch{} stopMic();stopCamera(); });
 
 showOverlayPre();
 </script>
